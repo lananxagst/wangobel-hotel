@@ -70,7 +70,7 @@ npm run dev
 
 ### Backend
 ```env
-PORT=5000
+PORT=4000
 MONGODB_URI=your_mongodb_uri
 JWT_SECRET=your_jwt_secret
 MIDTRANS_SERVER_KEY=your_midtrans_server_key
@@ -79,7 +79,7 @@ MIDTRANS_CLIENT_KEY=your_midtrans_client_key
 
 ### Frontend
 ```env
-VITE_BACKEND_URL=http://localhost:5000
+VITE_BACKEND_URL=http://localhost:4000
 VITE_MIDTRANS_CLIENT_KEY=your_midtrans_client_key
 ```
 
