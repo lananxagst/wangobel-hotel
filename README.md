@@ -69,8 +69,8 @@ npm run dev
 ## Environment Variables
 
 ### Backend
-```
-PORT=4000
+```env
+PORT=5000
 MONGODB_URI=your_mongodb_uri
 JWT_SECRET=your_jwt_secret
 MIDTRANS_SERVER_KEY=your_midtrans_server_key
@@ -78,18 +78,70 @@ MIDTRANS_CLIENT_KEY=your_midtrans_client_key
 ```
 
 ### Frontend
-```
-VITE_BACKEND_URL=http://localhost:4000
+```env
+VITE_BACKEND_URL=http://localhost:5000
 VITE_MIDTRANS_CLIENT_KEY=your_midtrans_client_key
 ```
+
+## Git Workflow
+
+This project uses three main branches:
+
+### Branches
+1. `development` - Active development branch
+2. `main` - Stable release candidate
+3. `production` - Live production code
+
+### Development Workflow
+1. Create feature branch from development:
+```bash
+git checkout development
+git checkout -b feature/your-feature
+```
+
+2. Make changes and commit:
+```bash
+git add .
+git commit -m "feat: your feature description"
+```
+
+3. Push and merge to development:
+```bash
+git push origin feature/your-feature
+# Create PR to development
+```
+
+4. Merge to main when stable:
+```bash
+git checkout main
+git merge development
+git push origin main
+```
+
+5. Release to production:
+```bash
+git checkout production
+git merge main
+git tag -a vX.Y.Z -m "Version X.Y.Z"
+git push origin production --tags
+```
+
+### Commit Message Format
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `style`: Formatting
+- `refactor`: Code restructuring
+- `test`: Testing
+- `chore`: Maintenance
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+2. Create feature branch from development
+3. Follow commit message format
+4. Push changes and create PR to development
+5. Wait for review and merge
 
 ## License
 
