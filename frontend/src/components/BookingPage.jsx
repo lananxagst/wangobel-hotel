@@ -263,10 +263,11 @@ const BookingPage = () => {
       const totalInK = nights * room.price; // Calculate total in K (e.g., 2 nights * 100K = 200K)
       const totalAmountMidtrans = convertToMidtransAmount(totalInK); // Convert to actual rupiah for Midtrans (200K -> 200000)
 
-      // Create booking data with consistent ID format
+      // Create booking data with consistent ID format and timestamp
       const bookingId = `BOOK-${Date.now()}`;
       const tempBooking = {
         _id: bookingId,
+        createdAt: Date.now(), // Add timestamp for auto-cleanup
         roomId: roomId,
         roomName: room.name,
         roomType: room.roomType,
@@ -280,7 +281,7 @@ const BookingPage = () => {
         totalAmount: totalInK, // Store amount in K for display
         totalAmountMidtrans: totalAmountMidtrans, // Store full rupiah amount for Midtrans
         status: 'pending',
-        createdAt: new Date().toISOString(),
+
         paymentMethod: 'midtrans'
       };
 

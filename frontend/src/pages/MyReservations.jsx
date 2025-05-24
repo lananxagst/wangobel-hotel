@@ -5,10 +5,88 @@ import { toast } from 'react-toastify';
 import { FaCalendarAlt, FaUsers, FaClock, FaMoneyBillWave } from 'react-icons/fa';
 import { formatToIDR } from '../utils/currency';
 
+const PENDING_BOOKING_TIMEOUT = 3 * 60 * 1000; // 3 minutes in milliseconds
+
 const MyReservations = () => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Function to force clean all pending bookings
+  const forceCleanAllPendingBookings = useCallback(() => {
+    console.log('Force cleaning all pending bookings...');
+    localStorage.removeItem('pendingBookings');
+    setReservations(prev => prev.filter(booking => booking.status !== 'pending'));
+  }, []);
+
+  // Function to clean up expired pending bookings
+  const cleanupExpiredBookings = useCallback(() => {
+    console.log('Running cleanup...');
+    try {
+      let pendingBookings = [];
+      try {
+        pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+      } catch (e) {
+        console.error('Error parsing pendingBookings:', e);
+        localStorage.removeItem('pendingBookings');
+        return;
+      }
+
+      const now = Date.now();
+      let hasInvalidData = false;
+      
+      // Validate and clean up bookings
+      const validBookings = pendingBookings.filter(booking => {
+        // Check for invalid data structure
+        if (!booking || typeof booking !== 'object') {
+          hasInvalidData = true;
+          return false;
+        }
+
+        // Check for required fields
+        if (!booking._id || !booking.roomId || !booking.checkIn || !booking.checkOut) {
+          console.log('Removing invalid booking:', booking);
+          return false;
+        }
+
+        // Remove old bookings without timestamp
+        if (!booking.createdAt) {
+          console.log(`Removing old booking without timestamp: ${booking._id}`);
+          return false;
+        }
+
+        // Check for expired bookings
+        const isExpired = now - booking.createdAt > PENDING_BOOKING_TIMEOUT;
+        if (isExpired) {
+          console.log(`Removing expired booking: ${booking._id}`);
+          return false;
+        }
+
+        return true;
+      });
+
+      // If we found invalid data, make sure to clean it up
+      if (hasInvalidData) {
+        console.log('Found invalid data in pendingBookings, cleaning up...');
+      }
+
+      // Always update localStorage and UI to ensure consistency
+      localStorage.setItem('pendingBookings', JSON.stringify(validBookings));
+      setReservations(prev => {
+        const newReservations = prev.filter(res => {
+          // Keep all confirmed bookings
+          if (res.status && res.status !== 'pending') return true;
+          // Only keep valid pending bookings
+          return validBookings.some(vb => vb._id === res._id);
+        });
+        return newReservations;
+      });
+    } catch (error) {
+      console.error('Error in cleanupExpiredBookings:', error);
+      // If something goes wrong, force clean all pending bookings
+      forceCleanAllPendingBookings();
+    }
+  }, [forceCleanAllPendingBookings]);
 
   const fetchReservations = useCallback(async () => {
     try {
@@ -45,10 +123,15 @@ const MyReservations = () => {
         return isUsersBooking && notConfirmed;
       });
 
-      setReservations([
-        ...userPendingBookings,
-        ...confirmedBookings
-      ]);
+      // Ensure each booking has a unique ID and required fields
+      const processedBookings = [...userPendingBookings, ...confirmedBookings].map(booking => ({
+        ...booking,
+        _id: booking._id || `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        roomName: booking.roomName || booking.room?.name || 'Room',
+        status: booking.status || 'pending'
+      }));
+
+      setReservations(processedBookings);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching reservations:', error);
@@ -65,8 +148,36 @@ const MyReservations = () => {
   }, [navigate]);
 
   useEffect(() => {
-    fetchReservations();
-  }, [fetchReservations]);
+    const initializeData = async () => {
+      try {
+        // First, force clean all pending bookings
+        console.log('Initial cleanup of all pending bookings...');
+        forceCleanAllPendingBookings();
+        
+        // Wait a moment for state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Then fetch fresh data
+        console.log('Fetching fresh reservations...');
+        await fetchReservations();
+      } catch (error) {
+        console.error('Error during initialization:', error);
+      }
+    };
+
+    // Run initial setup
+    initializeData();
+
+    // Set up periodic cleanup
+    console.log('Setting up periodic cleanup...');
+    const cleanupInterval = setInterval(cleanupExpiredBookings, 5000); // Check every 5 seconds
+
+    // Cleanup interval on component unmount
+    return () => {
+      console.log('Cleaning up component...');
+      clearInterval(cleanupInterval);
+    };
+  }, [fetchReservations, cleanupExpiredBookings, forceCleanAllPendingBookings]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
