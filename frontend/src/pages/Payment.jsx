@@ -179,15 +179,53 @@ const Payment = () => {
         }
       }
 
-      // Clean up booking ID (remove BOOK- prefix if exists)
-      const cleanBookingId = bookingData._id.replace('BOOK-', '');
-      // Generate unique order ID for this transaction
-      const orderId = `BOOK-${Date.now()}`;
+      // Store original booking ID for tracking
+      const originalBookingId = bookingData._id.replace('BOOK-', '');
+      
+      // For transaction tracking, use a consistent ID based on the booking
+      // This ensures we don't create multiple transactions for the same booking
+      const sessionKey = `payment_${originalBookingId}`;
+      const existingTransaction = sessionStorage.getItem(sessionKey);
+      
+      // If transaction exists and is still active, use the same order ID
+      let orderId;
+      if (existingTransaction) {
+        try {
+          const transactionData = JSON.parse(existingTransaction);
+          const currentTime = Date.now();
+          
+          // Check if transaction is expired
+          if (transactionData.expiryTime && currentTime > transactionData.expiryTime) {
+            console.log('Existing transaction expired, creating new one');
+            // Continue to create new transaction
+          } else {
+            orderId = transactionData.orderId;
+            console.log('Using existing transaction:', orderId);
+          }
+        } catch (error) {
+          console.error('Error parsing existing transaction:', error);
+          // Continue to create new transaction
+        }
+      }
+      
+      if (!orderId) {
+        // Create new transaction with unique order ID
+        orderId = `BOOK-${Date.now()}`;
+        
+        // Save transaction data in session storage with an expiry time (30 minutes)
+        sessionStorage.setItem(sessionKey, JSON.stringify({
+          orderId,
+          bookingId: originalBookingId,
+          timestamp: Date.now(),
+          expiryTime: Date.now() + (30 * 60 * 1000), // 30 minutes expiry
+          source: paymentSource
+        }));
+      }
       
       // Check if this booking already has a successful transaction
       try {
         const bookingCheck = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/bookings/${cleanBookingId}`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/bookings/${originalBookingId}`,
           {
             headers: {
               'Content-Type': 'application/json',
@@ -196,31 +234,58 @@ const Payment = () => {
           }
         );
         
-        if (bookingCheck.data.status === 'confirmed') {
-          console.log('Booking already confirmed:', cleanBookingId);
+        if (bookingCheck.data && bookingCheck.data.status === 'confirmed') {
+          console.log('Booking already confirmed:', originalBookingId);
           toast.info('This booking has already been confirmed');
+          cleanupStorage();
           navigate('/my-reservations', { replace: true });
           return;
         }
       } catch (error) {
-        console.error('Error checking booking status:', error);
-        // Continue with payment if we can't check the status
+        if (error.response && error.response.status !== 404) {
+          console.error('Error checking booking status:', error);
+          // Continue with payment if we can't check the status
+        }
       }
       
-      // Prevent multiple requests for the same booking
-      const processingKey = `processing_${orderId}`;
-      if (sessionStorage.getItem(processingKey)) {
-        console.log('Payment is already being processed for this booking');
-        toast.info('Payment is already being processed');
-        return;
+      // Check for processing lock, but allow restart after certain time
+      const processingKey = `processing_${originalBookingId}`;
+      const processingData = sessionStorage.getItem(processingKey);
+      
+      if (processingData) {
+        // Check if the lock is old (more than 5 minutes)
+        const processingTime = JSON.parse(processingData).timestamp;
+        const currentTime = Date.now();
+        const timeDiff = currentTime - processingTime;
+        
+        if (timeDiff < 5 * 60 * 1000) { // 5 minutes in milliseconds
+          console.log('Payment is already being processed for this booking');
+          
+          // Give option to force continue
+          const forceContinue = window.confirm(
+            'This booking appears to be in process already. This could happen if you closed your browser during payment.\n\nDo you want to restart the payment process?'
+          );
+          
+          if (!forceContinue) {
+            toast.info('Payment process cancelled');
+            return;
+          }
+          
+          console.log('User chose to force continue payment');
+        }
       }
-      sessionStorage.setItem(processingKey, 'true');
+      
+      // Set or update processing lock
+      sessionStorage.setItem(processingKey, JSON.stringify({
+        timestamp: Date.now(),
+        bookingId: originalBookingId
+      }));
 
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/payments/midtrans`,
         {
-          bookingId: cleanBookingId,
-          orderId: `BOOK-${Date.now()}`,
+          bookingId: originalBookingId,
+          orderId: orderId,
           amount: bookingData.totalAmountMidtrans,
           customerDetails: {
             firstName: bookingData.guestName.split(' ')[0],
@@ -242,24 +307,63 @@ const Payment = () => {
       }
 
       console.log('Processing payment for booking:', {
-        bookingId: cleanBookingId,
+        bookingId: originalBookingId,
+        orderId: orderId,
         source: paymentSource,
         amount: bookingData.totalAmountMidtrans
       });
 
-      // Cleanup storage sebelum memulai pembayaran
+      // Helper to clean up all storage
       const cleanupStorage = () => {
-        if (paymentSource === 'pending') {
-          const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
-          const updatedPendingBookings = pendingBookings.filter(b => b._id !== bookingData._id);
-          localStorage.setItem('pendingBookings', JSON.stringify(updatedPendingBookings));
+        console.log('Cleaning up storage');
+        // If booking is from pendingBookings, remove it
+        if (bookingData) {
+          const bookingId = bookingData._id.replace('BOOK-', '');
+          
+          // Clean up session storage
+          sessionStorage.removeItem(`payment_${bookingId}`);
+          sessionStorage.removeItem(`processing_${bookingId}`);
+          
+          // Remove from pending bookings if relevant
+          if (paymentSource === 'pending') {
+            let pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+            pendingBookings = pendingBookings.filter(b => {
+              const pendingId = b._id.replace('BOOK-', '');
+              return pendingId !== bookingId;
+            });
+            localStorage.setItem('pendingBookings', JSON.stringify(pendingBookings));
+            console.log('Removed from pendingBookings:', bookingId);
+          }
         }
+
+        // Remove new booking data
         sessionStorage.removeItem('currentNewBooking');
       };
 
+      // Set a transaction ID to track this specific payment session
+      const paymentSessionId = `payment_session_${Date.now()}`;
+      sessionStorage.setItem('current_payment_session', paymentSessionId);
+      
+      // Set timeout to remove stale locks after 10 minutes
+      const lockTimeout = setTimeout(() => {
+        processingRef.current = false;
+        sessionStorage.removeItem(`processing_${originalBookingId}`);
+      }, 10 * 60 * 1000);
+      
       window.snap.pay(response.data.token, {
         onSuccess: async (result) => {
           try {
+            // Get the current payment session ID and compare
+            const currentSession = sessionStorage.getItem('current_payment_session');
+            if (currentSession !== paymentSessionId) {
+              console.log('Ignoring duplicate callback from different payment session');
+              return;
+            }
+            
+            // Clear the session immediately to prevent further callbacks
+            sessionStorage.removeItem('current_payment_session');
+            clearTimeout(lockTimeout);
+            
             // Gunakan mutex untuk mencegah double processing
             if (processingRef.current) {
               console.log('Payment already being processed');
@@ -306,12 +410,28 @@ const Payment = () => {
             if (createBookingResponse.data.success) {
               // Show success message
               toast.success('Payment successful!');
+              
+              // Reset state completely
+              setBookingData(null);
+              processingRef.current = false;
+              sessionStorage.removeItem(`processing_${originalBookingId}`);
+              
+              // Redirect to reservation page
+              navigate('/my-reservations', { replace: true });
             }
           } catch (error) {
             console.error('Error in payment processing:', error);
             // Reset processing states
             processingRef.current = false;
-            sessionStorage.removeItem(`processing_${orderId}`);
+            sessionStorage.removeItem(`processing_${originalBookingId}`);
+            sessionStorage.removeItem('current_payment_session');
+            clearTimeout(lockTimeout);
+            
+            // Show error message
+            toast.error('Payment failed. Please try again.');
+            
+            // Redirect to reservation page
+            navigate('/my-reservations', { replace: true });
             
             // Restore storage jika gagal
             if (paymentSource === 'pending') {
@@ -339,13 +459,17 @@ const Payment = () => {
           navigate('/my-reservations', { replace: true });
         },
         onClose: () => {
+          // Reset processingRef
+          processingRef.current = false;
+          sessionStorage.removeItem(`processing_${originalBookingId}`);
+          sessionStorage.removeItem('current_payment_session');
+          clearTimeout(lockTimeout);
+
           console.log('Customer closed the popup without finishing the payment');
           toast.info('Payment cancelled');
           
           // Reset all states
           setLoading(false);
-          processingRef.current = false;
-          sessionStorage.removeItem(`processing_${orderId}`);
           
           // Keep the pending booking in localStorage
           // but clean up session storage

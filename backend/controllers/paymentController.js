@@ -71,7 +71,8 @@ export const initiateMidtransPayment = async (req, res) => {
                 email: customerDetails.email,
                 phone: customerDetails.phone
             },
-            custom_field1: bookingId // Store booking ID in custom field
+            custom_field1: bookingId, // Store booking ID
+            custom_field2: bookingId  // Store selected booking ID for validation
         };
 
         const transactionDetails = {
@@ -242,13 +243,56 @@ export const handleMidtransNotification = async (req, res) => {
             paymentType
         });
 
-        // Extract booking ID from notification data
-        const bookingId = notification.custom_field1 || notification.order_id;
-        if (!bookingId) {
-            console.error('No booking ID found in notification');
+        // Extract booking ID and selected booking ID from notification data
+        const bookingId = notification.custom_field1 || '';
+        const selectedBookingId = notification.custom_field2 || '';
+        const orderIdFromNotification = notification.order_id || '';
+
+        // Enhanced logging for troubleshooting
+        console.log('Notification data fields:', {
+            bookingId,
+            selectedBookingId,
+            orderIdFromNotification,
+            transactionId,
+            transactionStatus
+        });
+
+        // Use a fallback strategy for getting the booking ID
+        let finalBookingId = bookingId;
+
+        if (!finalBookingId) {
+            console.log('No custom_field1, checking custom_field2');
+            finalBookingId = selectedBookingId;
+        }
+
+        if (!finalBookingId && orderIdFromNotification.startsWith('BOOK-')) {
+            console.log('Extracting booking ID from order ID');
+            const match = orderIdFromNotification.match(/BOOK-(\d+)/);
+            if (match) {
+                const timestampFromOrder = match[1];
+                // Here we only have the timestamp, but we don't have the actual booking ID
+                // We need to search for bookings pending payment
+                console.log('Extracted timestamp from order ID:', timestampFromOrder);
+            }
+        }
+
+        if (!finalBookingId) {
+            console.error('Could not determine booking ID from notification');
             return res.status(400).json({ 
                 success: false,
-                message: 'No booking ID found' 
+                message: 'Could not determine booking ID' 
+            });
+        }
+
+        // Validate that this payment is for the selected booking if both values are present
+        if (bookingId && selectedBookingId && bookingId !== selectedBookingId) {
+            console.error('Payment is for a different booking:', {
+                paymentBookingId: bookingId,
+                selectedBookingId: selectedBookingId
+            });
+            return res.status(403).json({
+                success: false,
+                message: 'Payment is for a different booking'
             });
         }
 
@@ -262,9 +306,9 @@ export const handleMidtransNotification = async (req, res) => {
         console.log('Looking for booking:', bookingId);
 
         // Find booking and check if it's already processed
-        const booking = await Booking.findById(bookingId);
+        const booking = await Booking.findById(finalBookingId);
         if (!booking) {
-            console.error('Booking not found:', bookingId);
+            console.error('Booking not found:', finalBookingId);
             return res.status(404).json({ 
                 success: false,
                 message: 'Booking not found' 
@@ -277,6 +321,15 @@ export const handleMidtransNotification = async (req, res) => {
             return res.status(200).json({
                 success: true,
                 message: 'Transaction already processed'
+            });
+        }
+
+        // Check if this booking is already confirmed
+        if (booking.status === 'confirmed') {
+            console.log(`Booking already confirmed: ${finalBookingId}, transaction: ${transactionId}`);
+            return res.status(200).json({
+                success: true,
+                message: 'Booking already confirmed'
             });
         }
 
