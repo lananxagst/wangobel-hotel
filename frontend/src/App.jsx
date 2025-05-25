@@ -1,6 +1,6 @@
 import Header from './components/Header'
 import Footer from './components/Footer'
-import { Route, Routes, useLocation } from "react-router-dom"
+import { Route, Routes, useLocation, Navigate } from "react-router-dom"
 import Home from './pages/Home'
 import { ToastContainer } from "react-toastify"
 import { Helmet, HelmetProvider } from 'react-helmet-async'
@@ -39,6 +39,10 @@ const App = () => {
           <Route path='/profile' element={<Profile />} />
           <Route path="/booking-confirmation" element={<BookingConfirmation />} />
           <Route path="/payment" element={<Payment />} />
+          
+          {/* Callback routes untuk Midtrans payment - redirect ke My Reservations */}
+          <Route path="/payment-status/success" element={<Navigate to="/my-reservations" replace />} />
+          <Route path="/payment-status/failed" element={<Navigate to="/my-reservations" replace />} />
           <Route path='/rooms' element={<Rooms />} />
           <Route path='/my-reservations' element={<MyReservations />} />
         </Routes>

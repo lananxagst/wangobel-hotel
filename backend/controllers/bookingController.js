@@ -136,18 +136,27 @@ export const createBooking = async (req, res) => {
         }
 
         // Buat booking baru
-        const booking = await Booking.create({
+        const bookingData = {
             ...req.body,
             user: req.user._id,
             room: room._id,
             roomName: room.name,
-            roomType: room.roomType,
-            paymentDetails: {
+            roomType: room.roomType
+        };
+        
+        // Jika paymentDetails tidak dikirim dari frontend, buat default
+        if (!req.body.paymentDetails) {
+            bookingData.paymentDetails = {
                 status: 'pending',
                 method: req.body.paymentMethod || 'midtrans',
                 amount: req.body.totalAmount
-            }
-        });
+            };
+        }
+        
+        // Log booking data untuk debugging
+        console.log('Creating booking with data:', JSON.stringify(bookingData, null, 2));
+        
+        const booking = await Booking.create(bookingData);
 
         res.status(201).json({
             success: true,

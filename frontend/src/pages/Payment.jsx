@@ -136,22 +136,97 @@ const Payment = () => {
   const formattedCheckIn = checkInDate.toLocaleDateString();
   const formattedCheckOut = checkOutDate.toLocaleDateString();
 
+  // Helper to clean up all storage
+  const cleanupStorage = () => {
+    console.log('Cleaning up storage');
+    // If booking is from pendingBookings, remove it
+    if (bookingData) {
+      const bookingId = bookingData._id.replace('BOOK-', '');
+      
+      // Clean up session storage
+      sessionStorage.removeItem(`payment_${bookingId}`);
+      sessionStorage.removeItem(`processing_${bookingId}`);
+      
+      // Remove from pending bookings if relevant
+      if (paymentSource === 'pending') {
+        let pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+        pendingBookings = pendingBookings.filter(b => {
+          const pendingId = b._id.replace('BOOK-', '');
+          return pendingId !== bookingId;
+        });
+        localStorage.setItem('pendingBookings', JSON.stringify(pendingBookings));
+        console.log('Removed from pendingBookings:', bookingId);
+      }
+    }
+
+    // Remove new booking data
+    sessionStorage.removeItem('currentNewBooking');
+  };
+
   const handlePayment = async (method) => {
     setLoading(true);
     try {
       if (method === 'cash') {
-        // Handle cash payment
-        const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/payments/cash`, {
-          bookingId: bookingData._id,
-          amount: bookingData.totalAmount
-        });
+        setLoading(true);
+        try {
+          // Generate a processing ID to prevent duplicates
+          const processId = `cash_${Date.now()}`;
+          console.log('Processing cash payment with ID:', processId);
+          
+          // Create booking with cash payment details directly
+          const response = await axios.post(
+            `${import.meta.env.VITE_BACKEND_URL}/api/bookings`,
+            {
+              roomId: bookingData.roomId,
+              checkIn: bookingData.checkIn,
+              checkOut: bookingData.checkOut,
+              numberOfGuests: bookingData.numberOfGuests,
+              guestName: bookingData.guestName,
+              guestEmail: bookingData.guestEmail,
+              guestPhone: bookingData.guestPhone,
+              specialRequests: bookingData.specialRequests || '',
+              totalAmount: bookingData.totalAmount,
+              // Struktur paymentDetails yang disesuaikan dengan model di backend
+              // Mengirimkan flag status dengan jelas
+              paymentDetails: {
+                method: 'cash',  // Ini adalah enum di model
+                amount: bookingData.totalAmount,
+                status: 'Pay at Hotel',
+                paymentType: 'cash_on_arrival',
+                isCashPayment: true  // Flag tambahan untuk memastikan
+              },
+              status: 'confirmed'
+            },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
 
-        if (response.data.success) {
-          toast.success('Cash payment recorded successfully');
-          navigate('/my-reservations');
-        } else {
-          toast.error(response.data.message || 'Failed to record cash payment');
+          // Cleanup storage
+          cleanupStorage();
+          
+          if (response.data.success) {
+            toast.success('Cash payment recorded. Pay at hotel during check-in.');
+            
+            // Reset states
+            setBookingData(null);
+            processingRef.current = false;
+            
+            // Navigate to reservations page
+            navigate('/my-reservations', { replace: true });
+          } else {
+            toast.error(response.data.message || 'Failed to record cash payment');
+          }
+          
+        } catch (error) {
+          console.error('Error processing cash payment:', error);
+          toast.error('Failed to process cash payment. Please try again.');
         }
+        
+        setLoading(false);
         return;
       }
 
@@ -313,32 +388,7 @@ const Payment = () => {
         amount: bookingData.totalAmountMidtrans
       });
 
-      // Helper to clean up all storage
-      const cleanupStorage = () => {
-        console.log('Cleaning up storage');
-        // If booking is from pendingBookings, remove it
-        if (bookingData) {
-          const bookingId = bookingData._id.replace('BOOK-', '');
-          
-          // Clean up session storage
-          sessionStorage.removeItem(`payment_${bookingId}`);
-          sessionStorage.removeItem(`processing_${bookingId}`);
-          
-          // Remove from pending bookings if relevant
-          if (paymentSource === 'pending') {
-            let pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
-            pendingBookings = pendingBookings.filter(b => {
-              const pendingId = b._id.replace('BOOK-', '');
-              return pendingId !== bookingId;
-            });
-            localStorage.setItem('pendingBookings', JSON.stringify(pendingBookings));
-            console.log('Removed from pendingBookings:', bookingId);
-          }
-        }
-
-        // Remove new booking data
-        sessionStorage.removeItem('currentNewBooking');
-      };
+      // Use the cleanupStorage function defined at the top
 
       // Set a transaction ID to track this specific payment session
       const paymentSessionId = `payment_session_${Date.now()}`;

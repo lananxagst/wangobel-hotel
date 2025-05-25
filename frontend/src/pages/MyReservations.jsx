@@ -117,6 +117,10 @@ const MyReservations = () => {
 
       // Get confirmed bookings from database
       const confirmedBookings = response.data.bookings;
+      
+      // Log the booking data structure for debugging
+      console.log('Confirmed bookings from server:', confirmedBookings);
+      
       const confirmedBookingIds = confirmedBookings.map(booking => booking.roomId + booking.checkIn + booking.checkOut);
 
       // Get pending bookings from localStorage
@@ -323,9 +327,26 @@ const MyReservations = () => {
                                   'text-red-600'
                                 }`
                               }>
-                                {reservation.status === 'confirmed' ? 'Paid' :
-                                 reservation.status === 'pending' ? 'Pending' :
-                                 reservation.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
+                                {(() => {
+                                  // Tampilkan data booking di console untuk debugging
+                                  console.log('BOOKING DATA:', reservation);
+                                  
+                                  // Jika status confirmed & metode cash, tampilkan "Pay Cash at Hotel"
+                                  if (reservation.status === 'confirmed') {
+                                    // Check semua kemungkinan indikator pembayaran cash
+                                    if (reservation.paymentDetails?.method === 'cash' ||
+                                        reservation.paymentDetails?.paymentType === 'cash_on_arrival' ||
+                                        reservation.paymentDetails?.status === 'Pay at Hotel') {
+                                      return 'Pay Cash at Hotel';
+                                    }
+                                    return 'Paid';
+                                  }
+                                  
+                                  // Status lainnya
+                                  if (reservation.status === 'pending') return 'Pending';
+                                  if (reservation.status === 'cancelled') return 'Cancelled';
+                                  return 'Unknown';
+                                })()}
                               </div>
                             </div>
                           </div>
