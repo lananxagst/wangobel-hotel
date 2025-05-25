@@ -9,6 +9,17 @@ const Hero = () => {
   const [checkinDate, setCheckinDate] = useState('');
   const [checkoutDate, setCheckoutDate] = useState('');
   const guestRef = useRef(null);
+  
+  // Fungsi untuk mengarahkan langsung ke halaman rooms dengan parameter tanggal dan jumlah tamu
+  const navigateToRooms = () => {
+    // Format tanggal untuk URL parameter
+    const formattedCheckIn = checkinDate;
+    const formattedCheckOut = checkoutDate;
+    const guests = selectedGuests;
+    
+    // Navigasi ke halaman rooms dengan parameter
+    navigate(`/rooms?checkIn=${formattedCheckIn}&checkOut=${formattedCheckOut}&guests=${guests}`);
+  };
 
   const getNextDay = (date) => {
     const next = new Date(date);
@@ -99,9 +110,9 @@ const Hero = () => {
               toast.error('Check-out date must be after check-in date');
               return;
             }
-
-            // Navigate to rooms with validated parameters
-            navigate(`/rooms?checkIn=${checkinDate}&checkOut=${checkoutDate}&guests=${selectedGuests}`);
+            
+            // Langsung arahkan ke halaman rooms
+            navigateToRooms();
           }}>
             <div className="md:col-span-1">
               <div className="relative">
@@ -166,7 +177,7 @@ const Hero = () => {
             <div className="md:col-span-1">
               <button
                 type="submit"
-                className="w-full h-full px-6 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-opacity-50 transition-all font-medium text-base"
+                className="w-full bg-secondary hover:bg-secondary/90 text-primary font-bold py-3 px-6 rounded-lg transition-colors"
               >
                 Check Availability
               </button>

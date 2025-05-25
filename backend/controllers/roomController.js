@@ -80,8 +80,8 @@ export const getRooms = async (req, res) => {
                     totalRoomsOfType,
                     confirmedBookings,
                     availableRooms,
-                    checkIn: checkIn.toISOString(),
-                    checkOut: checkOut.toISOString()
+                    checkIn: utcCheckIn.toISOString(),
+                    checkOut: utcCheckOut.toISOString()
                 });
 
                 // Add availability info to room object
