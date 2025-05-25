@@ -57,20 +57,25 @@ export const initiateMidtransPayment = async (req, res) => {
         const orderId = `BOOK-${Date.now()}`;
         console.log('Creating transaction with order ID:', orderId);
 
-        const transactionDetails = {
+        const parameter = {
             transaction_details: {
                 order_id: orderId,
-                gross_amount: parseInt(amount)
+                gross_amount: amount
             },
             credit_card: {
                 secure: true
             },
             customer_details: {
                 first_name: customerDetails.firstName,
-                last_name: customerDetails.lastName,
+                last_name: customerDetails.lastName || '',
                 email: customerDetails.email,
                 phone: customerDetails.phone
             },
+            custom_field1: bookingId // Store booking ID in custom field
+        };
+
+        const transactionDetails = {
+            ...parameter,
             enabled_payments: [
                 "credit_card",        // Kartu kredit
                 "bca_va",            // BCA Virtual Account
@@ -237,26 +242,41 @@ export const handleMidtransNotification = async (req, res) => {
             paymentType
         });
 
-        // Extract booking ID from order ID (format: BOOK-{bookingId}-{timestamp})
-        const bookingIdMatch = orderId.match(/BOOK-(.*?)-/);
-        if (!bookingIdMatch) {
-            console.error('Invalid order ID format:', orderId);
+        // Extract booking ID from notification data
+        const bookingId = notification.custom_field1 || notification.order_id;
+        if (!bookingId) {
+            console.error('No booking ID found in notification');
+            return res.status(400).json({ 
+                success: false,
+                message: 'No booking ID found' 
+            });
+        }
+
+        if (!bookingId) {
+            console.error('Could not extract booking ID from order ID:', orderId);
             return res.status(400).json({ 
                 success: false,
                 message: 'Invalid order ID format' 
             });
         }
-
-        const bookingId = bookingIdMatch[1];
         console.log('Looking for booking:', bookingId);
 
-        // Find booking
+        // Find booking and check if it's already processed
         const booking = await Booking.findById(bookingId);
         if (!booking) {
             console.error('Booking not found:', bookingId);
             return res.status(404).json({ 
                 success: false,
                 message: 'Booking not found' 
+            });
+        }
+
+        // Check if this transaction was already processed
+        if (booking.paymentDetails?.transactionId === transactionId) {
+            console.log('Transaction already processed:', transactionId);
+            return res.status(200).json({
+                success: true,
+                message: 'Transaction already processed'
             });
         }
 

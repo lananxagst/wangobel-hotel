@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaCreditCard, FaMoneyBill } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -9,9 +9,10 @@ const Payment = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+
   const [bookingData, setBookingData] = useState(null);
   const [paymentSource, setPaymentSource] = useState(null); // 'new' or 'pending'
+  const processingRef = useRef(false); // Mutex untuk mencegah double processing
   
   // Get booking data from URL params or location state
   useEffect(() => {
@@ -178,16 +179,48 @@ const Payment = () => {
         }
       }
 
-      // Generate a new order ID for Midtrans
+      // Clean up booking ID (remove BOOK- prefix if exists)
+      const cleanBookingId = bookingData._id.replace('BOOK-', '');
+      // Generate unique order ID for this transaction
       const orderId = `BOOK-${Date.now()}`;
-      // Store original booking ID for reference
-      const originalBookingId = bookingData._id;
+      
+      // Check if this booking already has a successful transaction
+      try {
+        const bookingCheck = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/bookings/${cleanBookingId}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        
+        if (bookingCheck.data.status === 'confirmed') {
+          console.log('Booking already confirmed:', cleanBookingId);
+          toast.info('This booking has already been confirmed');
+          navigate('/my-reservations', { replace: true });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking booking status:', error);
+        // Continue with payment if we can't check the status
+      }
+      
+      // Prevent multiple requests for the same booking
+      const processingKey = `processing_${orderId}`;
+      if (sessionStorage.getItem(processingKey)) {
+        console.log('Payment is already being processed for this booking');
+        toast.info('Payment is already being processed');
+        return;
+      }
+      sessionStorage.setItem(processingKey, 'true');
 
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/payments/midtrans`,
         {
-          bookingId: originalBookingId,
-          orderId: orderId,
+          bookingId: cleanBookingId,
+          orderId: `BOOK-${Date.now()}`,
           amount: bookingData.totalAmountMidtrans,
           customerDetails: {
             firstName: bookingData.guestName.split(' ')[0],
@@ -209,24 +242,35 @@ const Payment = () => {
       }
 
       console.log('Processing payment for booking:', {
-        bookingId: bookingData._id,
+        bookingId: cleanBookingId,
         source: paymentSource,
         amount: bookingData.totalAmountMidtrans
       });
 
+      // Cleanup storage sebelum memulai pembayaran
+      const cleanupStorage = () => {
+        if (paymentSource === 'pending') {
+          const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+          const updatedPendingBookings = pendingBookings.filter(b => b._id !== bookingData._id);
+          localStorage.setItem('pendingBookings', JSON.stringify(updatedPendingBookings));
+        }
+        sessionStorage.removeItem('currentNewBooking');
+      };
+
       window.snap.pay(response.data.token, {
-
         onSuccess: async (result) => {
-          // Prevent duplicate processing
-          if (isProcessing) {
-            console.log('Payment already being processed');
-            return;
-          }
-
-          setIsProcessing(true);
-          console.log('Payment success:', result);
-
           try {
+            // Gunakan mutex untuk mencegah double processing
+            if (processingRef.current) {
+              console.log('Payment already being processed');
+              return;
+            }
+            processingRef.current = true;
+
+            console.log('Payment success:', result);
+            
+            // Cleanup storage di awal untuk mencegah duplikasi
+            cleanupStorage();
             // Create new booking with payment details
 
             // Always create a new booking for both new and pending bookings
@@ -260,61 +304,51 @@ const Payment = () => {
             );
 
             if (createBookingResponse.data.success) {
-              // Clean up ALL storage to prevent duplicate bookings
-              if (paymentSource === 'pending') {
-                // Remove this booking from pendingBookings
-                const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
-                const updatedPendingBookings = pendingBookings.filter(b => b._id !== bookingData._id);
-                localStorage.setItem('pendingBookings', JSON.stringify(updatedPendingBookings));
-              }
-              
-              // Always clean up session storage
-              sessionStorage.removeItem('currentNewBooking');
-              
-              // Clean up any payment-related state
-              setBookingData(null);
-              setPaymentSource(null);
-
               // Show success message
               toast.success('Payment successful!');
-              
-              // Clean up payment states
-              setIsProcessing(false);
-              setBookingData(null);
-              
-              // Use navigate with replace to prevent back navigation
-              navigate('/my-reservations');
-              return;
-            } else {
-              throw new Error('Failed to create booking');
             }
           } catch (error) {
-            console.error('Error creating booking:', error);
-            toast.error('Payment successful but booking failed to save. Please contact support.');
-            setIsProcessing(false);
+            console.error('Error in payment processing:', error);
+            // Reset processing states
+            processingRef.current = false;
+            sessionStorage.removeItem(`processing_${orderId}`);
+            
+            // Restore storage jika gagal
+            if (paymentSource === 'pending') {
+              const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+              if (!pendingBookings.some(b => b._id === bookingData._id)) {
+                pendingBookings.push(bookingData);
+                localStorage.setItem('pendingBookings', JSON.stringify(pendingBookings));
+              }
+            }
+            
+            // Show error message
+            toast.error('Payment failed. Please try again.');
           }
         },
         onPending: (result) => {
           console.log('Payment pending:', result);
           toast.info('Payment is pending. Please complete your payment.');
           setLoading(false);
-          setIsProcessing(false); // Reset processing state on pending
           navigate('/my-reservations', { replace: true });
         },
         onError: (result) => {
           console.error('Payment error:', result);
           toast.error('Payment failed. Please try again.');
           setLoading(false);
-          setIsProcessing(false); // Reset processing state on error
           navigate('/my-reservations', { replace: true });
         },
         onClose: () => {
           console.log('Customer closed the popup without finishing the payment');
           toast.info('Payment cancelled');
-          setLoading(false);
-          setIsProcessing(false);
           
-          // Always clean up session storage on close
+          // Reset all states
+          setLoading(false);
+          processingRef.current = false;
+          sessionStorage.removeItem(`processing_${orderId}`);
+          
+          // Keep the pending booking in localStorage
+          // but clean up session storage
           sessionStorage.removeItem('currentNewBooking');
           
           // Navigate back to my-reservations for pending bookings

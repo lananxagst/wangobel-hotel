@@ -12,16 +12,25 @@ const MyReservations = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Function to force clean all pending bookings
-  const forceCleanAllPendingBookings = useCallback(() => {
-    console.log('Force cleaning all pending bookings...');
-    localStorage.removeItem('pendingBookings');
-    setReservations(prev => prev.filter(booking => booking.status !== 'pending'));
+
+  // Function to clean invalid pending bookings
+  const cleanInvalidPendingBookings = useCallback(() => {
+    console.log('Cleaning invalid pending bookings...');
+    const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+    const validBookings = pendingBookings.filter(booking => {
+      return booking && 
+             typeof booking === 'object' && 
+             booking._id && 
+             booking.roomId && 
+             booking.checkIn && 
+             booking.checkOut;
+    });
+    localStorage.setItem('pendingBookings', JSON.stringify(validBookings));
   }, []);
 
   // Function to clean up expired pending bookings
   const cleanupExpiredBookings = useCallback(() => {
-    console.log('Running cleanup...');
+    console.log('Running expired bookings cleanup...');
     try {
       let pendingBookings = [];
       try {
@@ -83,10 +92,10 @@ const MyReservations = () => {
       });
     } catch (error) {
       console.error('Error in cleanupExpiredBookings:', error);
-      // If something goes wrong, force clean all pending bookings
-      forceCleanAllPendingBookings();
+      // If something goes wrong, just clean invalid bookings
+      cleanInvalidPendingBookings();
     }
-  }, [forceCleanAllPendingBookings]);
+  }, [cleanInvalidPendingBookings]);
 
   const fetchReservations = useCallback(async () => {
     try {
@@ -150,9 +159,9 @@ const MyReservations = () => {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        // First, force clean all pending bookings
-        console.log('Initial cleanup of all pending bookings...');
-        forceCleanAllPendingBookings();
+        // First, clean any invalid bookings
+        console.log('Initial cleanup of invalid bookings...');
+        cleanInvalidPendingBookings();
         
         // Wait a moment for state to update
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -177,7 +186,7 @@ const MyReservations = () => {
       console.log('Cleaning up component...');
       clearInterval(cleanupInterval);
     };
-  }, [fetchReservations, cleanupExpiredBookings, forceCleanAllPendingBookings]);
+  }, [fetchReservations, cleanupExpiredBookings, cleanInvalidPendingBookings]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
