@@ -1,11 +1,107 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FaCalendarAlt, FaUsers, FaClock, FaMoneyBillWave } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaClock, FaMoneyBillWave, FaHourglassHalf, FaExclamationCircle } from 'react-icons/fa';
 import { formatToIDR } from '../utils/currency';
+import PropTypes from 'prop-types';
 
 const PENDING_BOOKING_TIMEOUT = 3 * 60 * 1000; // 3 minutes in milliseconds
+
+// Timer component to show remaining time for pending bookings
+const BookingTimer = ({ createdAt = Date.now() }) => {
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [percentage, setPercentage] = useState(100);
+  const intervalRef = useRef(null);
+  
+  // Ensure createdAt is a valid timestamp
+  const timestamp = typeof createdAt === 'number' ? createdAt : Date.now();
+  
+  useEffect(() => {
+    // Calculate time remaining
+    const calculateTimeLeft = () => {
+      const now = Date.now();
+      const elapsedTime = now - timestamp;
+      const remainingTime = Math.max(0, PENDING_BOOKING_TIMEOUT - elapsedTime);
+      const percentRemaining = (remainingTime / PENDING_BOOKING_TIMEOUT) * 100;
+      
+      setTimeLeft(remainingTime);
+      setPercentage(percentRemaining);
+      
+      // Clear interval when time is up
+      if (remainingTime <= 0) {
+        clearInterval(intervalRef.current);
+      }
+    };
+    
+    // Initial calculation
+    calculateTimeLeft();
+    
+    // Update every second
+    intervalRef.current = setInterval(calculateTimeLeft, 1000);
+    
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [timestamp]);
+  
+  // Format time remaining for display
+  const formatTime = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+  
+  // Get color based on time remaining
+  const getTimerColor = () => {
+    if (percentage > 66) return 'bg-green-500';
+    if (percentage > 33) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+  
+  return (
+    <div className="mt-2">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center text-sm">
+          <FaHourglassHalf className="mr-1 text-secondary" />
+          <span className="font-medium">Time Remaining:</span>
+        </div>
+        <span className={`text-sm font-semibold ${percentage <= 33 ? 'text-red-600' : percentage <= 66 ? 'text-yellow-600' : 'text-green-600'}`}>
+          {formatTime(timeLeft)}
+        </span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div 
+          className={`h-2 rounded-full ${getTimerColor()}`} 
+          style={{ width: `${percentage}%`, transition: 'width 1s linear' }}
+        ></div>
+      </div>
+      {percentage <= 33 && (
+        <div className="flex items-center mt-1 text-red-600 text-xs">
+          <FaExclamationCircle className="mr-1" />
+          <span>Book will expire soon! Complete payment to secure your reservation.</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Add PropTypes validation for BookingTimer
+BookingTimer.propTypes = {
+  createdAt: PropTypes.oneOfType([
+    PropTypes.number,
+    PropTypes.string
+  ])
+};
+
+// Add default props
+BookingTimer.defaultProps = {
+  createdAt: Date.now()
+};
 
 const MyReservations = () => {
   const [reservations, setReservations] = useState([]);
@@ -354,14 +450,20 @@ const MyReservations = () => {
                       </div>
 
                       {reservation.status === 'pending' && (
-                        <div className="flex justify-end">
-                          <button
-                            onClick={() => navigate(`/payment?bookingId=${reservation._id}`)}
-                            className="bg-secondary text-white px-6 py-2.5 rounded-lg font-semibold text-sm shadow-sm hover:bg-secondary/90 transition-all inline-flex items-center gap-2"
-                          >
-                            <FaMoneyBillWave className="text-lg" />
-                            Complete Payment
-                          </button>
+                        <div className="mt-4">
+                          {/* Timer component with fallback for createdAt */}
+                          <BookingTimer createdAt={reservation.createdAt || (reservation._id && parseInt(reservation._id.split('-')[1]))} />
+                          
+                          {/* Complete Payment Button */}
+                          <div className="flex justify-end mt-4">
+                            <button
+                              onClick={() => navigate(`/payment?bookingId=${reservation._id}`)}
+                              className="bg-secondary text-white px-6 py-2.5 rounded-lg font-semibold text-sm shadow-sm hover:bg-secondary/90 transition-all inline-flex items-center gap-2"
+                            >
+                              <FaMoneyBillWave className="text-lg" />
+                              Complete Payment
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
