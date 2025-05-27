@@ -66,32 +66,32 @@ const NewsLetter = () => {
   };
 
   return (
-    <section className='max-padd-container border-t-[1px] border-b-[1px] border-primary py-4'>
-      <div className='flexBetween flex-wrap gap-7'>
-        <div>
+    <section className='max-padd-container border-t-[1px] border-b-[1px] border-primary py-6 px-4 md:px-6'>
+      <div className='flex flex-col md:flex-row md:justify-between md:items-center gap-5 md:gap-7'>
+        <div className="mb-3 md:mb-0">
           <h4 className='bold-14 uppercase tracking-wider'>Subscribe newsletter</h4>
-          <p>Get latest information on Events, Sales & Offers.</p>
+          <p className="text-sm md:text-base">Get latest information on Events, Sales & Offers.</p>
         </div>
-        <div>
-          <form onSubmit={handleSubmit} className='flex bg-secondary'>
+        <div className="w-full md:w-auto">
+          <form onSubmit={handleSubmit} className='flex flex-col sm:flex-row bg-secondary w-full md:w-auto'>
             <input 
               type="email" 
               placeholder='Email Address' 
-              className='p-4 bg-tertiary w-[266px] outline-none text-[13px]'
+              className='p-3 sm:p-4 bg-tertiary w-full sm:w-[200px] md:w-[266px] outline-none text-[13px]'
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
             <button 
               type="submit"
-              className='btn-yellow !rounded-none !text-[13px] !font-bold uppercase'
+              className='btn-yellow w-full sm:w-auto !rounded-none !text-[13px] !font-bold uppercase'
               disabled={loading}
             >
               {loading ? 'Submitting...' : 'Submit'}
             </button>
           </form>
         </div>
-        <div className='flex gap-x-3 pr-14'>
+        <div className='flex justify-center md:justify-start gap-x-4 md:pr-0 mt-4 md:mt-0'>
           <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className='h-8 w-8 rounded-full hover:bg-tertiary hover:text-white flexCenter transition-all duration-500'>
             <FaFacebookF />
           </a>
