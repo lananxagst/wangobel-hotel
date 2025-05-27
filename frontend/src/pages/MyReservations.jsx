@@ -65,9 +65,9 @@ const BookingTimer = ({ createdAt = Date.now() }) => {
   
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center text-sm">
-          <FaHourglassHalf className="mr-1 text-secondary" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1">
+        <div className="flex items-center text-sm mb-1 sm:mb-0">
+          <FaHourglassHalf className="mr-1 text-secondary flex-shrink-0" />
           <span className="font-medium">Time Remaining:</span>
         </div>
         <span className={`text-sm font-semibold ${percentage <= 33 ? 'text-red-600' : percentage <= 66 ? 'text-yellow-600' : 'text-green-600'}`}>
@@ -81,8 +81,8 @@ const BookingTimer = ({ createdAt = Date.now() }) => {
         ></div>
       </div>
       {percentage <= 33 && (
-        <div className="flex items-center mt-1 text-red-600 text-xs">
-          <FaExclamationCircle className="mr-1" />
+        <div className="flex items-start sm:items-center mt-1 text-red-600 text-xs">
+          <FaExclamationCircle className="mr-1 mt-1 sm:mt-0 flex-shrink-0" />
           <span>Book will expire soon! Complete payment to secure your reservation.</span>
         </div>
       )}
@@ -322,13 +322,13 @@ const MyReservations = () => {
     <div className="min-h-screen bg-tertiary">
       {/* Header */}
       <div className="bg-tertiary">
-        <div className="max-w-6xl mx-auto px-4 py-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">My Reservations</h1>
-          <p className="text-lg text-gray-600 text-center">Manage your hotel bookings and reservations</p>
+        <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 text-center">My Reservations</h1>
+          <p className="text-base md:text-lg text-gray-600 text-center">Manage your hotel bookings and reservations</p>
         </div>
       </div>
 
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
           {reservations.length === 0 ? (
             <div className="bg-white p-8 rounded-2xl shadow-lg text-center border border-gray-100">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -337,7 +337,7 @@ const MyReservations = () => {
               <h3 className="text-2xl font-semibold text-gray-900 mb-2">No Reservations Found</h3>
               <p className="text-gray-500 mb-6">Start your journey by booking your first stay with us</p>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/rooms')}
                 className="bg-secondary text-white px-6 py-2.5 rounded-lg font-semibold text-sm shadow-sm hover:bg-secondary/90 transition-all inline-flex items-center gap-2"
               >
                 <FaCalendarAlt className="text-lg" />
@@ -351,34 +351,35 @@ const MyReservations = () => {
                   key={reservation._id}
                   className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all"
                 >
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                   {/* Header with Room Name, Status and Booking ID */}
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                      <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1">
                         {reservation.roomName}
                       </h3>
-                      <div className="text-sm text-gray-500">
-                        Booking ID: <span className="font-mono">{reservation._id}</span>
+                      <div className="text-xs md:text-sm text-gray-500 truncate w-full">
+                        Booking ID: <span className="font-mono">{reservation._id.substring(0, 15)}...</span>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(reservation.status)}`}>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs md:text-sm font-medium whitespace-nowrap ${getStatusColor(reservation.status)}`}>
                       {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
                     </span>
                   </div>
 
                   {/* Booking Details Grid */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Check-in - Check-out */}
                     <div className="col-span-1">
                       <div className="flex items-center gap-3 bg-tertiary p-3 rounded-lg">
-                        <FaCalendarAlt className="text-primary text-lg" />
-                        <div>
+                        <FaCalendarAlt className="text-primary text-lg flex-shrink-0" />
+                        <div className="w-full">
                           <div className="text-sm text-gray-500">Check-in - Check-out</div>
-                          <div className="font-medium text-gray-900">
-                            {formatDate(reservation.checkIn)}
-                            <span className="mx-2 text-gray-400">-</span>
-                            {formatDate(reservation.checkOut)}
+                          <div className="font-medium text-gray-900 text-sm md:text-base flex flex-col md:flex-row md:items-center">
+                            <span>{formatDate(reservation.checkIn)}</span>
+                            <span className="hidden md:inline mx-2 text-gray-400">-</span>
+                            <span className="md:hidden text-gray-400 my-1">to</span>
+                            <span>{formatDate(reservation.checkOut)}</span>
                           </div>
                         </div>
                       </div>
@@ -387,8 +388,8 @@ const MyReservations = () => {
                     {/* Guest Count */}
                     <div className="col-span-1">
                       <div className="flex items-center gap-3 bg-tertiary p-3 rounded-lg">
-                        <FaUsers className="text-primary text-lg" />
-                        <div>
+                        <FaUsers className="text-primary text-lg flex-shrink-0" />
+                        <div className="w-full">
                           <div className="text-sm text-gray-500">Guests</div>
                           <div className="font-medium text-gray-900">{reservation.numberOfGuests} Guests</div>
                         </div>
@@ -398,14 +399,14 @@ const MyReservations = () => {
 
                   <div className="mt-6 pt-6 border-t border-gray-100">
                     <div className="flex flex-col gap-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Total Amount */}
                         <div className="col-span-1">
                           <div className="flex items-center gap-3 bg-tertiary p-3 rounded-lg">
-                            <FaMoneyBillWave className="text-primary text-lg" />
-                            <div>
+                            <FaMoneyBillWave className="text-primary text-lg flex-shrink-0" />
+                            <div className="w-full">
                               <div className="text-sm text-gray-500">Total Amount</div>
-                              <div className="font-semibold text-gray-900">{formatToIDR(reservation.totalAmount)}</div>
+                              <div className="font-semibold text-gray-900 text-sm md:text-base">{formatToIDR(reservation.totalAmount)}</div>
                             </div>
                           </div>
                         </div>
@@ -413,11 +414,11 @@ const MyReservations = () => {
                         {/* Payment Status */}
                         <div className="col-span-1">
                           <div className="flex items-center gap-3 bg-tertiary p-3 rounded-lg">
-                            <FaClock className="text-primary text-lg" />
-                            <div>
+                            <FaClock className="text-primary text-lg flex-shrink-0" />
+                            <div className="w-full">
                               <div className="text-sm text-gray-500">Payment Status</div>
                               <div className={
-                                `font-semibold ${
+                                `font-semibold text-sm md:text-base ${
                                   reservation.status === 'confirmed' ? 'text-green-600' : 
                                   reservation.status === 'pending' ? 'text-yellow-600' : 
                                   'text-red-600'
@@ -455,10 +456,10 @@ const MyReservations = () => {
                           <BookingTimer createdAt={reservation.createdAt || (reservation._id && parseInt(reservation._id.split('-')[1]))} />
                           
                           {/* Complete Payment Button */}
-                          <div className="flex justify-end mt-4">
+                          <div className="flex justify-center md:justify-end mt-4">
                             <button
                               onClick={() => navigate(`/payment?bookingId=${reservation._id}`)}
-                              className="bg-secondary text-white px-6 py-2.5 rounded-lg font-semibold text-sm shadow-sm hover:bg-secondary/90 transition-all inline-flex items-center gap-2"
+                              className="w-full md:w-auto bg-secondary text-white px-6 py-2.5 rounded-lg font-semibold text-sm shadow-sm hover:bg-secondary/90 transition-all inline-flex items-center justify-center md:justify-start gap-2"
                             >
                               <FaMoneyBillWave className="text-lg" />
                               Complete Payment
