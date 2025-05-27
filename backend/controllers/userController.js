@@ -1,6 +1,7 @@
 import userModel from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import validator from "validator";
 import { cloudinary } from '../config/cloudinary.js';
 import multer from 'multer';
 
@@ -46,37 +47,59 @@ const loginUser = async (req, res) => {
 
 // CONTROLLER FUNCTION FOR USER REGISTER
 const registerUser = async (req, res) => {
-
     try {
         const { name, email, password } = req.body
+        
+        // Validate input data
+        if (!name || !email || !password) {
+            return res.json({ success: false, message: "Please provide name, email, and password" })
+        }
+        
         // CHECKING IF USER ALREADY EXISTS
         const exists = await userModel.findOne({ email })
         if (exists) {
             return res.json({ success: false, message: "User already exists" })
         }
-        // VALIDATE PASSWORD AND CHECKING PASSWORD STRENGTH
+        
+        // VALIDATE EMAIL FORMAT
         if (!validator.isEmail(email)) {
             return res.json({ success: false, message: "Please enter a valid email" })
         }
+        
+        // VALIDATE PASSWORD STRENGTH
         if (password.length < 8) {
-            return res.json({ success: false, message: "Please enter a strong password" })
+            return res.json({ success: false, message: "Password must be at least 8 characters long" })
         }
 
         // HASHING USER PASSWORD
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
 
+        // Create default avatar using user's name
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+
         const newUser = new userModel({
             name: name,
             email: email,
-            password: hashedPassword
+            password: hashedPassword,
+            picture: avatarUrl
         })
 
         const user = await newUser.save()
 
         const token = createToken(user._id)
 
-        res.json({ success: true, token })
+        // Return user info along with token
+        res.json({ 
+            success: true, 
+            token,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                picture: user.picture
+            }
+        })
 
     } catch (error) {
         console.log(error)

@@ -16,6 +16,8 @@ const Login = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const isInitialLoad = useRef(true);
 
   const googleLogin = useGoogleLogin({
@@ -66,8 +68,48 @@ const Login = () => {
     },
   });
 
+  // Validate form fields based on current state
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (currState === "Sign Up") {
+      // Name validation
+      if (!name.trim()) {
+        newErrors.name = "Name is required";
+      }
+    }
+    
+    // Email validation
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    // Password validation
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters long";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const onSubmitHandler = async (event) => {
     event.preventDefault();
+    
+    // Clear previous errors
+    setErrors({});
+    
+    // Validate the form
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsLoading(true);
+    
     try {
       let response;
       if (currState === "Sign Up") {
@@ -78,27 +120,22 @@ const Login = () => {
         });
 
         if (response.data.success) {
-          // Setelah register berhasil, langsung login
-          const loginResponse = await axios.post(`${backendUrl}/api/user/login`, {
+          // Store the token and user data from registration response
+          setToken(response.data.token);
+          localStorage.setItem("token", response.data.token);
+          
+          // Use user data returned from the server
+          const userData = response.data.user || {
+            name,
             email,
-            password,
-          });
-
-          if (loginResponse.data.success) {
-            setToken(loginResponse.data.token);
-            localStorage.setItem("token", loginResponse.data.token);
-
-            // Set user data
-            const userData = {
-              name,
-              email,
-              picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
-            };
-            setUser(userData);
-            localStorage.setItem("user", JSON.stringify(userData));
-
-            toast.success("Successfully registered and logged in");
-          }
+            picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+          };
+          
+          setUser(userData);
+          localStorage.setItem("user", JSON.stringify(userData));
+          
+          toast.success("Successfully registered and logged in");
+          navigate("/");
         } else {
           toast.error(response.data.message);
         }
@@ -135,7 +172,9 @@ const Login = () => {
       }
     } catch (error) {
       console.log(error);
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -182,9 +221,11 @@ const Login = () => {
                   onChange={(e) => setName(e.target.value)}
                   value={name}
                   type="text"
+                  id="name"
                   placeholder="Name"
-                  className="w-full px-3 py-1.5 ring-1 ring-slate-900/5 rounded bg-tertiary mt-1"
+                  className={`w-full px-3 py-1.5 ring-1 ${errors.name ? 'ring-red-500' : 'ring-slate-900/5'} rounded bg-tertiary mt-1`}
                 />
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
             )}
             <div className="w-full">
@@ -195,9 +236,11 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 value={email}
                 type="email"
+                id="email"
                 placeholder="Email"
-                className="w-full px-3 py-1.5 ring-1 ring-slate-900/5 rounded bg-tertiary mt-1"
+                className={`w-full px-3 py-1.5 ring-1 ${errors.email ? 'ring-red-500' : 'ring-slate-900/5'} rounded bg-tertiary mt-1`}
               />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
             <div className="w-full">
               <label htmlFor="password" className="medium-15">
@@ -207,15 +250,31 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 value={password}
                 type="password"
+                id="password"
                 placeholder="Password"
-                className="w-full px-3 py-1.5 ring-1 ring-slate-900/5 rounded bg-tertiary mt-1"
+                className={`w-full px-3 py-1.5 ring-1 ${errors.password ? 'ring-red-500' : 'ring-slate-900/5'} rounded bg-tertiary mt-1`}
               />
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+              {currState === "Sign Up" && !errors.password && password && (
+                <p className="text-xs text-gray-500 mt-1">Password must be at least 8 characters long</p>
+              )}
             </div>
             <button
               type="submit"
-              className="w-full bg-secondary text-white py-2.5 rounded-lg hover:bg-secondary/90 transition-all mt-5"
+              disabled={isLoading}
+              className="w-full bg-secondary text-white py-2.5 rounded-lg hover:bg-secondary/90 transition-all mt-5 flex items-center justify-center"
             >
-              {currState === "Sign Up" ? "Sign Up" : "Login"}
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                currState === "Sign Up" ? "Sign Up" : "Login"
+              )}
             </button>
 
             <button
