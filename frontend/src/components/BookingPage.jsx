@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaUsers, FaCreditCard, FaClock } from 'react-icons/fa';
-import { backend_url } from '../App';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { formatToIDR, convertToMidtransAmount } from '../utils/currency';
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const BookingPage = () => {
   const { roomId } = useParams();
@@ -32,7 +33,7 @@ const BookingPage = () => {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const response = await axios.get(`${backend_url}/api/rooms/${roomId}`);
+        const response = await axios.get(`${backendUrl}/api/rooms/${roomId}`);
         setRoom(response.data);
       } catch (error) {
         console.error('Error fetching room:', error);
@@ -68,7 +69,7 @@ const BookingPage = () => {
       // Tambahkan timestamp untuk menghindari caching
       const timestamp = new Date().getTime();
       const response = await fetch(
-        `${backend_url}/api/rooms/${roomId}?checkIn=${formattedDate}&_t=${timestamp}`,
+        `${backendUrl}/api/rooms/${roomId}?checkIn=${formattedDate}&_t=${timestamp}`,
         {
           method: 'GET',
           headers: {

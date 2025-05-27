@@ -11,13 +11,15 @@ import Login from './pages/Login'
 import Profile from './pages/Profile'
 import Rooms from './pages/Rooms'
 import MyReservations from './pages/MyReservations'
+import ResetPassword from './pages/ResetPassword'
 
-export const backend_url = 'http://localhost:4000'
+// Backend URL diambil dari environment variable
+// Digunakan secara konsisten di seluruh aplikasi
 
 const App = () => {
   const location = useLocation();
-  const hideHeaderPaths = ["/login", "/signup"];
-  const hideFooterPaths = ["/login", "/signup", "/payment", "/booking-confirmation"];
+  const hideHeaderPaths = ["/login", "/signup", "/reset-password"];
+  const hideFooterPaths = ["/login", "/signup", "/payment", "/booking-confirmation", "/reset-password"];
   const shouldShowHeader = !hideHeaderPaths.includes(location.pathname);
   const shouldShowFooter = !hideFooterPaths.includes(location.pathname);
 
@@ -45,6 +47,7 @@ const App = () => {
           <Route path="/payment-status/failed" element={<Navigate to="/my-reservations" replace />} />
           <Route path='/rooms' element={<Rooms />} />
           <Route path='/my-reservations' element={<MyReservations />} />
+          <Route path='/reset-password' element={<ResetPassword />} />
         </Routes>
         {shouldShowFooter && <Footer />}
       </main>
