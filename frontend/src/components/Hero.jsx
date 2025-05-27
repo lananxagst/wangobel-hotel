@@ -68,7 +68,7 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center text-white px-4 pb-32 pt-20 md:pt-0">
+      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center text-white px-4 pb-32 pt-20 md:pt-20">
         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 md:mb-8 leading-tight">
           The Perfect<br />Base For You
         </h1>

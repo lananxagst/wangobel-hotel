@@ -6,7 +6,6 @@ import { Route, Routes } from "react-router-dom";
 import RoomManagement from "./pages/RoomManagement";
 import Add from "./pages/Add";
 import List from "./pages/List";
-import Orders from "./pages/Orders";
 
 export default function App() {
   const [token, setToken] = useState(() => {
@@ -30,7 +29,6 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Add token={token}/>} />
               <Route path="/list" element={<List token={token}/>} />
-              <Route path="/orders" element={<Orders token={token}/>} />
               <Route path="/rooms" element={<RoomManagement token={token} />} />
             </Routes>
           </div>

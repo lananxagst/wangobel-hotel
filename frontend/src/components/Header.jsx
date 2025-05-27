@@ -107,13 +107,7 @@ const Header = () => {
                       >
                         Profile
                       </Link>
-                      <Link 
-                        to="/orders" 
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-secondary cursor-pointer"
-                        onClick={() => setShowProfileMenu(false)}
-                      >
-                        Orders
-                      </Link>
+                      
                       <button
                         onClick={() => {
                           handleLogout();
