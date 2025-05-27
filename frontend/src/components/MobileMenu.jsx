@@ -30,6 +30,13 @@ const MobileMenu = ({ onClose }) => {
               About
             </Link>
             <Link 
+              to="/my-reservations" 
+              className="block text-text-dark hover:text-secondary transition-colors"
+              onClick={onClose}
+            >
+              My Reservation
+            </Link>
+            <Link 
               to="/contact" 
               className="block text-text-dark hover:text-secondary transition-colors"
               onClick={onClose}
