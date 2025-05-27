@@ -12,9 +12,7 @@ import Profile from './pages/Profile'
 import Rooms from './pages/Rooms'
 import MyReservations from './pages/MyReservations'
 import ResetPassword from './pages/ResetPassword'
-
-// Backend URL diambil dari environment variable
-// Digunakan secara konsisten di seluruh aplikasi
+import About from './components/About'
 
 const App = () => {
   const location = useLocation();
@@ -41,6 +39,7 @@ const App = () => {
           <Route path='/profile' element={<Profile />} />
           <Route path="/booking-confirmation" element={<BookingConfirmation />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path='/about' element={<About />} />
           
           {/* Callback routes untuk Midtrans payment - redirect ke My Reservations */}
           <Route path="/payment-status/success" element={<Navigate to="/my-reservations" replace />} />
