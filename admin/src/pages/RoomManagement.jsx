@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FaEdit, FaTrash, FaStar, FaRegStar } from 'react-icons/fa';
+import { FaEdit, FaTrash,  } from 'react-icons/fa';
 import PropTypes from 'prop-types';
 import { backend_url } from '../constants';
 import { compressImage } from '../utils/imageUtils';
@@ -170,20 +170,7 @@ const RoomManagement = ({ token }) => {
     }
   };
 
-  const toggleFeatured = async (roomId, currentStatus) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      await axios.put(
-        `http://localhost:4000/api/rooms/${roomId}`,
-        { featured: !currentStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success('Room status updated');
-      fetchRooms();
-    } catch (err) {
-      toast.error('Error updating room status: ' + err.message);
-    }
-  };
+
 
 
 
@@ -207,16 +194,9 @@ const RoomManagement = ({ token }) => {
             <div className="p-4">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg font-semibold">{room.name}</h3>
-                <button
-                  onClick={() => toggleFeatured(room._id, room.featured)}
-                  className="text-yellow-400 hover:text-yellow-500"
-                  title={room.featured ? 'Remove from featured' : 'Add to featured'}
-                >
-                  {room.featured ? <FaStar /> : <FaRegStar />}
-                </button>
               </div>
               <p className="text-gray-600 mb-2">{room.roomType}</p>
-              <p className="text-gray-800 font-bold mb-2">${room.price}/night</p>
+              <p className="text-gray-800 font-bold mb-2">IDR{room.price}/night</p>
               <div className="flex justify-between items-center mt-4">
                 <button
                   onClick={() => handleDelete(room._id)}
