@@ -49,13 +49,25 @@ const Login = () => {
           setToken(loginResponse.data.token);
           localStorage.setItem("token", loginResponse.data.token);
 
-          const userData = {
-            name: userInfo.data.name,
-            email: userInfo.data.email,
-            picture: userInfo.data.picture
-          };
-          setUser(userData);
-          localStorage.setItem("user", JSON.stringify(userData));
+          // Menggunakan data user dari backend (termasuk picture terbaru) alih-alih dari Google API
+          if (loginResponse.data.user) {
+            const userData = {
+              name: loginResponse.data.user.name,
+              email: loginResponse.data.user.email,
+              picture: loginResponse.data.user.picture
+            };
+            setUser(userData);
+            localStorage.setItem("user", JSON.stringify(userData));
+          } else {
+            // Fallback ke data dari Google jika backend tidak mengirim data user
+            const userData = {
+              name: userInfo.data.name,
+              email: userInfo.data.email,
+              picture: userInfo.data.picture
+            };
+            setUser(userData);
+            localStorage.setItem("user", JSON.stringify(userData));
+          }
 
           toast.success("Successfully logged in with Google");
         } else {

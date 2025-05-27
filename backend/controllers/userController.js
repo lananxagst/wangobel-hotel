@@ -212,17 +212,34 @@ const googleLogin = async (req, res) => {
                 password: bcrypt.hashSync(googleId + process.env.JWT_SECRET, 10) // Create secure random password
             })
         } else {
-            // Update existing user's Google ID and picture if they don't have it
+            // Update existing user's Google ID if they don't have it
+            // But don't override existing picture if user has customized it
             if (!user.googleId) {
                 user.googleId = googleId
-                user.picture = picture
+                // Only set picture from Google if user doesn't have a picture yet
+                if (!user.picture) {
+                    user.picture = picture
+                }
                 await user.save()
             }
         }
 
-        // Create token and send response
+        // Create token and send response with user data
         const token = createToken(user._id)
-        res.json({ success: true, token })
+        
+        // Return current user data from database (including the most recent picture)
+        const userData = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            picture: user.picture
+        }
+        
+        res.json({ 
+            success: true, 
+            token,
+            user: userData
+        })
 
     } catch (error) {
         console.error(error)
