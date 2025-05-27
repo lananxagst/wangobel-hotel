@@ -13,6 +13,7 @@ const RoomManagement = ({ token }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [editFormData, setEditFormData] = useState({
+    roomNumber: '',
     name: '',
     description: '',
     price: '',
@@ -79,6 +80,7 @@ const RoomManagement = ({ token }) => {
   const handleEdit = (room) => {
     setEditingRoom(room);
     setEditFormData({
+      roomNumber: room.roomNumber,
       name: room.name,
       description: room.description,
       price: room.price,
@@ -144,6 +146,7 @@ const RoomManagement = ({ token }) => {
       const uploadedNewImages = await Promise.all(newImageUploadPromises);
 
       const updatedRoom = {
+        roomNumber: editFormData.roomNumber,
         name: editFormData.name,
         description: editFormData.description,
         price: Number(editFormData.price),

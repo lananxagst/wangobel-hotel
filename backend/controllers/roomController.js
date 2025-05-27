@@ -257,7 +257,7 @@ export const createRoom = async (req, res) => {
         try {
             const activeSubscribers = await Subscriber.find({ isActive: true });
             if (activeSubscribers.length > 0) {
-                await sendRoomUpdateEmail(activeSubscribers, createdRoom);
+                await sendRoomUpdateEmail(activeSubscribers, createdRoom, 'new');
             }
         } catch (emailError) {
             console.error('Failed to send notification emails:', emailError);
@@ -306,6 +306,17 @@ export const updateRoom = async (req, res) => {
             }
 
             const updatedRoom = await room.save();
+            
+            // Send email notification to subscribers about the updated room
+            try {
+                const activeSubscribers = await Subscriber.find({ isActive: true });
+                if (activeSubscribers.length > 0) {
+                    await sendRoomUpdateEmail(activeSubscribers, updatedRoom, 'update');
+                }
+            } catch (emailError) {
+                console.error('Failed to send notification emails for room update:', emailError);
+            }
+            
             res.json(updatedRoom);
         } else {
             res.status(404).json({ message: 'Room not found' });
