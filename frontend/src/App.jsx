@@ -13,6 +13,7 @@ import Rooms from './pages/Rooms'
 import MyReservations from './pages/MyReservations'
 import ResetPassword from './pages/ResetPassword'
 import About from './components/About'
+import Contact from './pages/Contact'
 
 const App = () => {
   const location = useLocation();
@@ -40,6 +41,7 @@ const App = () => {
           <Route path="/booking-confirmation" element={<BookingConfirmation />} />
           <Route path="/payment" element={<Payment />} />
           <Route path='/about' element={<About />} />
+          <Route path='/contact' element={<Contact />} />
           
           {/* Callback routes untuk Midtrans payment - redirect ke My Reservations */}
           <Route path="/payment-status/success" element={<Navigate to="/my-reservations" replace />} />
