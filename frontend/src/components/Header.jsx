@@ -37,17 +37,17 @@ const Header = () => {
       <header className="w-full bg-primary text-white">
         <div className="max-w-container mx-auto px-4 py-6 flex justify-between items-center">
           {/* LOGO  */}
-          <Link to={"/"} className="flex items-center -ml-3 gap-2">
+          <Link to={"/"} className="flex items-center -ml-1 md:-ml-3 gap-1 md:gap-2">
             <img 
               src={logo} 
               alt="WG Hotel Logo" 
-              className="h-16 w-auto hover:opacity-90 transition-opacity scale-150 -translate-y-1 gap-2" 
+              className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto hover:opacity-90 transition-opacity md:scale-125 lg:scale-150 md:-translate-y-1" 
             />
             <div className="flex flex-col">
-              <span className="text-xl font-bold leading-none">
+              <span className="text-base sm:text-lg md:text-xl font-bold leading-none">
                 WG HOTEL
               </span>
-              <span className="text-sm font-medium text-secondary mt-1 ml-3">
+              <span className="text-xs sm:text-sm font-medium text-secondary mt-1 ml-2 md:ml-3">
                 JIMBARAN
               </span>
             </div>
