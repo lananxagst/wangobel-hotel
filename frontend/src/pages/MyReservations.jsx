@@ -108,129 +108,291 @@ const MyReservations = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Helper function to get user email from various sources
+  const getUserEmail = useCallback(() => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!userData || !userData.email) return '';
+      return userData.email.toLowerCase().trim();
+    } catch (error) {
+      console.error('Error getting user email:', error);
+      return '';
+    }
+  }, []);
+
+  // Helper function to get pending bookings for current user
+  const getUserPendingBookings = useCallback(() => {
+    const userEmail = getUserEmail();
+    if (!userEmail) {
+      console.warn('No user email found, cannot get pending bookings');
+      return [];
+    }
+
+    // Get bookings from user-specific storage
+    const userKey = `pendingBookings_${userEmail}`;
+    let userBookings = [];
+    try {
+      userBookings = JSON.parse(localStorage.getItem(userKey) || '[]');
+      console.log(`Found ${userBookings.length} bookings in user storage: ${userKey}`);
+    } catch (error) {
+      console.error(`Error parsing user storage ${userKey}:`, error);
+      localStorage.removeItem(userKey);
+    }
+
+    // Also check global storage for backward compatibility
+    let globalBookings = [];
+    try {
+      const allBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+      globalBookings = allBookings.filter(booking => {
+        if (!booking || !booking.guestEmail) return false;
+        return booking.guestEmail.toLowerCase().trim() === userEmail;
+      });
+      console.log(`Found ${globalBookings.length} user bookings in global storage`);
+    } catch (error) {
+      console.error('Error parsing global pendingBookings:', error);
+    }
+
+    // Merge bookings, preventing duplicates
+    const mergedBookings = [...userBookings];
+    globalBookings.forEach(globalBooking => {
+      // Only add if not already in user storage
+      const isDuplicate = userBookings.some(b => b._id === globalBooking._id);
+      if (!isDuplicate) {
+        mergedBookings.push(globalBooking);
+        console.log('Adding unique booking from global storage:', globalBooking._id);
+      }
+    });
+
+    return mergedBookings;
+  }, [getUserEmail]);
 
   // Function to clean invalid pending bookings
   const cleanInvalidPendingBookings = useCallback(() => {
     console.log('Cleaning invalid pending bookings...');
-    const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
-    const validBookings = pendingBookings.filter(booking => {
-      return booking && 
-             typeof booking === 'object' && 
-             booking._id && 
-             booking.roomId && 
-             booking.checkIn && 
-             booking.checkOut;
-    });
-    localStorage.setItem('pendingBookings', JSON.stringify(validBookings));
-  }, []);
+    const userEmail = getUserEmail();
+    if (!userEmail) return;
+
+    const userKey = `pendingBookings_${userEmail}`;
+    console.log(`Cleaning invalid bookings from ${userKey}`);
+
+    // Clean user-specific bookings
+    try {
+      const pendingBookings = JSON.parse(localStorage.getItem(userKey) || '[]');
+      const validBookings = pendingBookings.filter(booking => {
+        return booking && 
+               typeof booking === 'object' && 
+               booking._id && 
+               booking.roomId && 
+               booking.checkIn && 
+               booking.checkOut;
+      });
+      localStorage.setItem(userKey, JSON.stringify(validBookings));
+      console.log(`Cleaned ${pendingBookings.length - validBookings.length} invalid bookings`);
+    } catch (error) {
+      console.error(`Error cleaning ${userKey}:`, error);
+    }
+
+    // Also clean global pendingBookings for backward compatibility
+    try {
+      const allBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+      const validAllBookings = allBookings.filter(booking => {
+        return booking && 
+               typeof booking === 'object' && 
+               booking._id && 
+               booking.roomId && 
+               booking.checkIn && 
+               booking.checkOut;
+      });
+      localStorage.setItem('pendingBookings', JSON.stringify(validAllBookings));
+    } catch (error) {
+      console.error('Error cleaning global pendingBookings:', error);
+    }
+  }, [getUserEmail]);
 
   // Function to clean up expired pending bookings
   const cleanupExpiredBookings = useCallback(() => {
     console.log('Running expired bookings cleanup...');
+    const userEmail = getUserEmail();
+    if (!userEmail) return;
+
+    const userKey = `pendingBookings_${userEmail}`;
+    console.log(`Checking expired bookings in ${userKey}`);
+
     try {
-      let pendingBookings = [];
-      try {
-        pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
-      } catch (e) {
-        console.error('Error parsing pendingBookings:', e);
-        localStorage.removeItem('pendingBookings');
-        return;
-      }
-
+      // Process user-specific bookings
+      const pendingBookings = JSON.parse(localStorage.getItem(userKey) || '[]');
       const now = Date.now();
-      let hasInvalidData = false;
-      
-      // Validate and clean up bookings
-      const validBookings = pendingBookings.filter(booking => {
-        // Check for invalid data structure
-        if (!booking || typeof booking !== 'object') {
-          hasInvalidData = true;
-          return false;
-        }
+      const validBookings = [];
+      const expiredBookings = [];
 
-        // Check for required fields
-        if (!booking._id || !booking.roomId || !booking.checkIn || !booking.checkOut) {
-          console.log('Removing invalid booking:', booking);
-          return false;
-        }
+      pendingBookings.forEach(booking => {
+        if (!booking || typeof booking !== 'object') return;
 
-        // Remove old bookings without timestamp
+        // If booking doesn't have a timestamp, create one for future cleanup
         if (!booking.createdAt) {
-          console.log(`Removing old booking without timestamp: ${booking._id}`);
-          return false;
+          booking.createdAt = Date.now() - (2 * 60 * 1000);
         }
 
-        // Check for expired bookings
-        const isExpired = now - booking.createdAt > PENDING_BOOKING_TIMEOUT;
-        if (isExpired) {
-          console.log(`Removing expired booking: ${booking._id}`);
-          return false;
+        // Check if booking has expired (3 minutes timeout)
+        if ((now - booking.createdAt) > PENDING_BOOKING_TIMEOUT) {
+          console.log('Found expired booking:', booking._id);
+          expiredBookings.push(booking);
+        } else {
+          validBookings.push(booking);
         }
-
-        return true;
       });
 
-      // If we found invalid data, make sure to clean it up
-      if (hasInvalidData) {
-        console.log('Found invalid data in pendingBookings, cleaning up...');
+      // Save updated list
+      localStorage.setItem(userKey, JSON.stringify(validBookings));
+      if (expiredBookings.length > 0) {
+        console.log(`Removed ${expiredBookings.length} expired bookings from ${userKey}`);
+        
+        // If expired bookings were found, update reservations state
+        setReservations(prev => {
+          const newReservations = prev.filter(res => {
+            // Keep all confirmed bookings
+            if (res.status !== 'pending') return true;
+
+            // For pending bookings, check if it's NOT in expiredBookings
+            return !expiredBookings.some(eb => eb._id === res._id);
+          });
+          return newReservations;
+        });
       }
 
-      // Always update localStorage and UI to ensure consistency
-      localStorage.setItem('pendingBookings', JSON.stringify(validBookings));
-      setReservations(prev => {
-        const newReservations = prev.filter(res => {
-          // Keep all confirmed bookings
-          if (res.status && res.status !== 'pending') return true;
-          // Only keep valid pending bookings
-          return validBookings.some(vb => vb._id === res._id);
-        });
-        return newReservations;
+      // Also update global pendingBookings
+      const allBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+      const updatedGlobalBookings = allBookings.filter(booking => {
+        if (!booking || !booking.createdAt) return false;
+        return (now - booking.createdAt) <= PENDING_BOOKING_TIMEOUT;
       });
+      localStorage.setItem('pendingBookings', JSON.stringify(updatedGlobalBookings));
     } catch (error) {
       console.error('Error in cleanupExpiredBookings:', error);
-      // If something goes wrong, just clean invalid bookings
-      cleanInvalidPendingBookings();
     }
-  }, [cleanInvalidPendingBookings]);
+  }, [getUserEmail]);
 
   const fetchReservations = useCallback(async () => {
+    setLoading(true);
+    
     try {
+      // Check if user is logged in
       const token = localStorage.getItem('token');
       if (!token) {
+        toast.error('Please login to view your reservations');
         navigate('/login');
         return;
       }
-
-      const userId = JSON.parse(localStorage.getItem('user'))._id;
-      const response = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/bookings/user/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
+      
+      // Get user email - using our helper function
+      const userEmail = getUserEmail();
+      if (!userEmail) {
+        toast.error('User profile incomplete. Please login again.');
+        navigate('/login');
+        return;
+      }
+      
+      console.log('Using user email for API request:', userEmail);
+      
+      // Fetch confirmed bookings from backend using email
+      let confirmedBookings = [];
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/bookings/user-email/${encodeURIComponent(userEmail)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        }
-      );
-
-      // Get confirmed bookings from database
-      const confirmedBookings = response.data.bookings;
+        );
+        confirmedBookings = response.data.bookings || [];
+        console.log('Confirmed bookings from server:', confirmedBookings);
+      } catch (apiError) {
+        console.error('Error fetching confirmed bookings:', apiError);
+        toast.error('Could not fetch confirmed bookings: ' + 
+          (apiError.response?.data?.message || apiError.message || ''));
+        // Continue to show pending bookings even if confirmed bookings fail
+      }
       
-      // Log the booking data structure for debugging
-      console.log('Confirmed bookings from server:', confirmedBookings);
+      // Create a set of unique identifiers for confirmed bookings
+      // Using more reliable identifiers that include roomId, checkIn, checkOut, and guestEmail
+      const confirmedBookingIds = confirmedBookings.map(booking => {
+        return `${booking.roomId}_${booking.checkIn}_${booking.checkOut}_${booking.user?.email || ''}`.toLowerCase();
+      });
       
-      const confirmedBookingIds = confirmedBookings.map(booking => booking.roomId + booking.checkIn + booking.checkOut);
+      console.log('Confirmed booking identifiers:', confirmedBookingIds);
 
-      // Get pending bookings from localStorage
-      const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+      // Get pending bookings using our helper function
+      const pendingBookings = getUserPendingBookings();
+      console.log(`Found ${pendingBookings.length} pending bookings for ${userEmail}`);
+      
+      // Filter pending bookings to only show those that aren't already confirmed
       const userPendingBookings = pendingBookings.filter(booking => {
-        // Filter by user email
-        const isUsersBooking = booking.guestEmail === JSON.parse(localStorage.getItem('user')).email;
+        // Skip invalid bookings
+        if (!booking || !booking.guestEmail || !booking.roomId || !booking.checkIn || !booking.checkOut) {
+          console.warn('Skipping invalid booking:', booking);
+          return false;
+        }
         
         // Check if this booking exists in confirmed bookings
-        const bookingKey = booking.roomId + booking.checkIn + booking.checkOut;
-        const notConfirmed = !confirmedBookingIds.includes(bookingKey);
+        // Using the same identifier format as above for consistent comparison
+        const guestEmail = booking.guestEmail ? booking.guestEmail.toLowerCase() : '';
+        const bookingKey = `${booking.roomId}_${booking.checkIn}_${booking.checkOut}_${guestEmail}`.toLowerCase();
+        const isAlreadyConfirmed = confirmedBookingIds.includes(bookingKey);
         
-        return isUsersBooking && notConfirmed;
+        console.log(`Checking if booking ${booking._id} is confirmed: ${isAlreadyConfirmed}`);
+        console.log(`Using key: ${bookingKey}`);
+        
+        if (isAlreadyConfirmed) {
+          console.log(`Booking ${booking._id} is already confirmed and will be filtered out`);
+          return false;
+        }
+        
+        return true;
       });
+      
+      console.log(`After filtering, ${userPendingBookings.length} pending bookings remain`);
+      
+      // Additional cleanup: Remove any confirmed bookings from localStorage
+      // This ensures localStorage stays in sync with backend data
+      try {
+        // Get both global and user-specific pending bookings
+        const userKey = `pendingBookings_${userEmail}`;
+        const allPendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+        const userPendingBookingsFromStorage = JSON.parse(localStorage.getItem(userKey) || '[]');
+        
+        // Filter out any bookings that are already confirmed in both locations
+        const filteredGlobalBookings = allPendingBookings.filter(booking => {
+          if (!booking || !booking.roomId || !booking.checkIn || !booking.checkOut || !booking.guestEmail) return true;
+          
+          const guestEmail = booking.guestEmail.toLowerCase();
+          const bookingKey = `${booking.roomId}_${booking.checkIn}_${booking.checkOut}_${guestEmail}`.toLowerCase();
+          return !confirmedBookingIds.includes(bookingKey);
+        });
+        
+        const filteredUserBookings = userPendingBookingsFromStorage.filter(booking => {
+          if (!booking || !booking.roomId || !booking.checkIn || !booking.checkOut || !booking.guestEmail) return true;
+          
+          const guestEmail = booking.guestEmail.toLowerCase();
+          const bookingKey = `${booking.roomId}_${booking.checkIn}_${booking.checkOut}_${guestEmail}`.toLowerCase();
+          return !confirmedBookingIds.includes(bookingKey);
+        });
+        
+        // Update localStorage with cleaned lists
+        if (allPendingBookings.length !== filteredGlobalBookings.length) {
+          console.log(`Removed ${allPendingBookings.length - filteredGlobalBookings.length} confirmed bookings from global storage`);
+          localStorage.setItem('pendingBookings', JSON.stringify(filteredGlobalBookings));
+        }
+        
+        if (userPendingBookingsFromStorage.length !== filteredUserBookings.length) {
+          console.log(`Removed ${userPendingBookingsFromStorage.length - filteredUserBookings.length} confirmed bookings from user-specific storage`);
+          localStorage.setItem(userKey, JSON.stringify(filteredUserBookings));
+        }
+      } catch (error) {
+        console.error('Error cleaning confirmed bookings from localStorage:', error);
+      }
+      
+      console.log('User pending bookings after filtering:', userPendingBookings);
 
       // Ensure each booking has a unique ID and required fields
       const processedBookings = [...userPendingBookings, ...confirmedBookings].map(booking => ({
@@ -240,21 +402,47 @@ const MyReservations = () => {
         status: booking.status || 'pending'
       }));
 
+      console.log('Final reservation list:', processedBookings);
       setReservations(processedBookings);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching reservations:', error);
-      toast.error('Failed to load reservations');
+      console.error('Fatal error in fetchReservations:', error);
+      toast.error('Failed to load reservations: ' + (error.message || ''));
 
-      // If API call fails, only show pending bookings
-      const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
-      const userPendingBookings = pendingBookings.filter(booking => 
-        booking.guestEmail === JSON.parse(localStorage.getItem('user')).email
-      );
-      setReservations(userPendingBookings);
+      // Fallback: just show pending bookings
+      try {
+        // Get user email using our helper
+        const userEmail = getUserEmail();
+        if (!userEmail) {
+          setReservations([]);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Fallback: showing only pending bookings');
+        
+        // Get pending bookings using our helper
+        const pendingBookings = getUserPendingBookings();
+        console.log(`Fallback: found ${pendingBookings.length} pending bookings`);
+        
+        // Make sure all bookings have required fields
+        const processedBookings = pendingBookings.map(booking => ({
+          ...booking,
+          _id: booking._id || `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          roomName: booking.roomName || 'Room',
+          status: 'pending'
+        }));
+        
+        setReservations(processedBookings);
+      } catch (fallbackError) {
+        console.error('Error in fallback booking retrieval:', fallbackError);
+        // If all else fails, just show empty reservations
+        setReservations([]);
+      }
+      
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, getUserPendingBookings, getUserEmail]);
 
   useEffect(() => {
     const initializeData = async () => {

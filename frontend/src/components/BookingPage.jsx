@@ -286,10 +286,47 @@ const BookingPage = () => {
         paymentMethod: 'midtrans'
       };
 
-      // Save to localStorage
-      const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
-      pendingBookings.push(tempBooking);
-      localStorage.setItem('pendingBookings', JSON.stringify(pendingBookings));
+      // Helper function to get and save pending bookings by user email
+      const savePendingBooking = (booking) => {
+        try {
+          // Get user email from localStorage for namespace
+          const userData = JSON.parse(localStorage.getItem('user') || '{}');
+          const userEmail = userData.email ? userData.email.toLowerCase().trim() : '';
+          
+          if (!userEmail) {
+            console.error('User email not found in localStorage, cannot save pending booking');
+            throw new Error('No user email found');
+          }
+          
+          // Log for debugging
+          console.log(`Saving pending booking for user: ${userEmail}`);
+          console.log('Booking data:', booking);
+          
+          // 1. Save to user-specific storage
+          const userKey = `pendingBookings_${userEmail}`;
+          const userBookings = JSON.parse(localStorage.getItem(userKey) || '[]');
+          userBookings.push(booking);
+          localStorage.setItem(userKey, JSON.stringify(userBookings));
+          console.log(`Saved to ${userKey}, total: ${userBookings.length} bookings`);
+          
+          // 2. Also save to global pendingBookings for backward compatibility
+          const allBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+          allBookings.push(booking);
+          localStorage.setItem('pendingBookings', JSON.stringify(allBookings));
+          console.log(`Also saved to global pendingBookings, total: ${allBookings.length} bookings`);
+          
+          return true;
+        } catch (error) {
+          console.error('Error saving pending booking:', error);
+          return false;
+        }
+      };
+      
+      // Save booking to localStorage
+      if (!savePendingBooking(tempBooking)) {
+        toast.error('Failed to save booking information. Please login again.');
+        return;
+      }
 
       // Navigate to payment page
       navigate('/payment', {

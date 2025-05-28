@@ -42,6 +42,58 @@ export const getUserBookings = async (req, res) => {
     }
 };
 
+// Get bookings by user email
+export const getUserBookingsByEmail = async (req, res) => {
+    try {
+        const { email } = req.params;
+        
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email parameter is required'
+            });
+        }
+
+        // Normalize email for consistent comparison
+        const normalizedEmail = email.toLowerCase().trim();
+        console.log(`Finding bookings for email: ${normalizedEmail}`);
+        
+        // Get user by email
+        const user = await import('../models/userModel.js')
+            .then(module => module.default.findOne({ email: normalizedEmail }));
+
+        if (!user) {
+            console.log(`No user found with email: ${normalizedEmail}`);
+            return res.status(200).json({
+                success: true,
+                bookings: [],
+                message: 'No user found with this email'
+            });
+        }
+
+        console.log(`Found user: ${user.name} (${user._id}) for email: ${normalizedEmail}`);
+        
+        // Get bookings by user id
+        const bookings = await Booking.find({ user: user._id })
+            .sort({ createdAt: -1 })
+            .populate('room', 'name roomType price images');
+
+        console.log(`Found ${bookings.length} bookings for user: ${user.name} (${user._id})`);
+
+        res.status(200).json({
+            success: true,
+            bookings
+        });
+    } catch (error) {
+        console.error('Error in getUserBookingsByEmail:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching bookings by email',
+            error: error.message
+        });
+    }
+};
+
 // Create new booking
 export const createBooking = async (req, res) => {
     try {
