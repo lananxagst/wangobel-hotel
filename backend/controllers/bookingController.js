@@ -131,7 +131,7 @@ export const createBooking = async (req, res) => {
         if (availableRooms <= 0) {
             return res.status(400).json({
                 success: false,
-                message: `No rooms available for check-in date ${checkInDate.toLocaleDateString()}`
+                message: `No rooms of this type available for check-in date ${checkInDate.toLocaleDateString()}`
             });
         }
 

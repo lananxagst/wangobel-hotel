@@ -98,7 +98,7 @@ const BookingPage = () => {
       });
       
       if (!isAvailable) {
-        const errorMessage = `No rooms available for check-in date ${utcDate.toLocaleDateString()}`;
+        const errorMessage = `No rooms of this type available for check-in date ${utcDate.toLocaleDateString()}`;
         console.log('Setting error:', errorMessage);
         setErrors(prev => ({
           ...prev,
