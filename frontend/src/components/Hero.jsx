@@ -40,13 +40,13 @@ const Hero = () => {
   const handleCheckoutChange = (e) => {
     const newCheckoutDate = e.target.value;
     if (!checkinDate) {
-      alert('Please select check-in date first');
+      toast.error('Please select check-in date first');
       e.target.value = ''; // Reset input
       return;
     }
     const minCheckoutDate = getNextDay(checkinDate);
     if (newCheckoutDate < minCheckoutDate) {
-      alert('Check-out date must be at least one day after check-in date');
+      toast.error('Check-out date must be at least one day after check-in date');
       e.target.value = ''; // Reset input
       return;
     }
@@ -139,8 +139,16 @@ const Hero = () => {
                   type="date"
                   value={checkoutDate}
                   onChange={handleCheckoutChange}
-                  min={checkinDate ? getNextDay(checkinDate) : new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all text-sm md:text-base"
+                  onClick={(e) => {
+                    if (!checkinDate) {
+                      e.preventDefault();
+                      toast.error('Please select check-in date first');
+                      return false;
+                    }
+                  }}
+                  min={checkinDate ? getNextDay(checkinDate) : ""}
+                  disabled={!checkinDate}
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all text-sm md:text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Check out"
                   required
                 />
