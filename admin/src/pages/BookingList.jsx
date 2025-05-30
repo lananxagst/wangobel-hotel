@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { format, addDays, startOfWeek, isSameDay, parseISO } from 'date-fns';
+import { format, addDays, isSameDay, parseISO } from 'date-fns';
 import { FaCalendarAlt, FaExclamationCircle, FaCreditCard, FaMoneyBill } from 'react-icons/fa';
 
 const backend_url = import.meta.env.VITE_BACKEND_URL;
@@ -11,11 +11,18 @@ const BookingList = ({ token }) => {
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 640);
   
-  // Generate array of 7 days (full week) for the current week
+  // Generate array of 7 days for desktop view
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }).map((_, index) => addDays(currentWeekStart, index));
+  }, [currentWeekStart]);
+  
+  // Mobile view will show 3 consecutive days based on currentWeekStart
+  // This ensures next/prev navigation works on mobile too
+  const mobileDays = useMemo(() => {
+    return Array.from({ length: 3 }).map((_, index) => addDays(currentWeekStart, index));
   }, [currentWeekStart]);
   
   const fetchBookings = useCallback(async () => {
@@ -273,14 +280,14 @@ const BookingList = ({ token }) => {
       // Example: Check-in May 29, Check-out May 30 = Only staying on May 29
       const isDateOccupied = targetDate >= checkInDate && targetDate < checkOutDate;
       
-      // Debug logging
-      console.log(`Checking booking ${b._id} in room ${roomNumber}:`, {
-        assigned: b.assignedRoomNumber === roomNumber,
-        targetDate: targetDate.toISOString().split('T')[0],
-        checkIn: checkInDate.toISOString().split('T')[0],
-        checkOut: checkOutDate.toISOString().split('T')[0],
-        isOccupied: isDateOccupied
-      });
+      // Remove excessive debug logging in production
+      // console.log(`Checking booking ${b._id} in room ${roomNumber}:`, {
+      //   assigned: b.assignedRoomNumber === roomNumber,
+      //   targetDate: targetDate.toISOString().split('T')[0],
+      //   checkIn: checkInDate.toISOString().split('T')[0],
+      //   checkOut: checkOutDate.toISOString().split('T')[0],
+      //   isOccupied: isDateOccupied
+      // });
       
       return b.assignedRoomNumber === roomNumber && isDateOccupied;
     });
@@ -309,16 +316,33 @@ const BookingList = ({ token }) => {
     console.log(`Total unique bookings rendered: ${uniqueCount} out of ${bookings.length}`);
   }, [bookings, uniqueRoomTypes, weekDays, getBookingForRoomOnDate]);
   
+  // Add resize event listener to detect mobile/desktop view changes
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 640);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const navigateToPreviousWeek = () => {
-    setCurrentWeekStart(prevDate => addDays(prevDate, -7));
+    // On mobile: move back 3 days, on desktop: move back 7 days
+    const daysToMove = isMobileView ? -3 : -7;
+    setCurrentWeekStart(prevDate => addDays(prevDate, daysToMove));
   };
   
   const navigateToNextWeek = () => {
-    setCurrentWeekStart(prevDate => addDays(prevDate, 7));
+    // On mobile: move forward 3 days, on desktop: move forward 7 days
+    const daysToMove = isMobileView ? 3 : 7;
+    setCurrentWeekStart(prevDate => addDays(prevDate, daysToMove));
   };
   
   const navigateToCurrentWeek = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    // For both mobile and desktop: reset to today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    setCurrentWeekStart(today);
   };
   
   if (loading) {
@@ -331,17 +355,18 @@ const BookingList = ({ token }) => {
   }
   
   return (
-    <div className="admin-container max-w-7xl mx-auto">
-      <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center">
+    <div className="admin-container px-2 sm:px-4 max-w-7xl mx-auto overflow-y-auto min-h-screen pb-10">
+      <div className="mb-4 md:mb-6 flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
-          <h2 className="text-2xl font-bold text-primary">Room Bookings</h2>
-          <p className="text-text-light mt-1">Manage your hotel room bookings</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-primary">Room Bookings</h2>
+          <p className="text-text-light text-sm sm:text-base mt-1">Manage your hotel room bookings</p>
         </div>
         
-        <div className="flex items-center space-x-2 mt-4 md:mt-0">
+        <div className="flex justify-center items-center gap-2 mt-3 md:mt-0 w-full md:w-auto">
           <button
             onClick={navigateToPreviousWeek}
-            className="admin-btn-outline p-2"
+            className="admin-btn-outline p-2 flex-shrink-0"
+            aria-label="Previous"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -350,15 +375,17 @@ const BookingList = ({ token }) => {
           
           <button
             onClick={navigateToCurrentWeek}
-            className="admin-btn-outline flex items-center px-3 py-2"
+            className="admin-btn-outline flex items-center justify-center px-2 sm:px-3 py-2 flex-grow-0"
           >
-            <FaCalendarAlt className="mr-2" />
-            <span>Current Week</span>
+            <FaCalendarAlt className="mr-1 sm:mr-2" />
+            <span className="text-sm sm:text-base hidden sm:inline">Current Week</span>
+            <span className="text-sm inline sm:hidden">Today</span>
           </button>
           
           <button
             onClick={navigateToNextWeek}
-            className="admin-btn-outline p-2"
+            className="admin-btn-outline p-2 flex-shrink-0"
+            aria-label="Next"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -367,77 +394,159 @@ const BookingList = ({ token }) => {
         </div>
       </div>
       
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-sm text-gray-500">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-1 sm:gap-0">
+        <div className="text-xs sm:text-sm text-gray-500">
           Total bookings: <span className="font-semibold text-primary">{bookings.length}</span>
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-xs sm:text-sm text-gray-500">
           Visible bookings: <span className="font-semibold text-primary">{renderedBookingsCount}</span>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {/* Header with days of the week */}
-        <div className="grid grid-cols-8 border-b">
-          <div className="p-4 font-medium bg-tertiary/90 border-r">Room</div>
-          {weekDays.map((day, index) => (
+      {/* DESKTOP VIEW - Visible on sm breakpoint and above */}
+      <div className="bg-white rounded-lg shadow overflow-hidden hidden sm:block">
+        {/* Scrollable container for booking table */}
+        <div className="overflow-x-auto pb-1">
+          {/* Header with days of the week */}
+          <div className="grid grid-cols-8 border-b">
+            <div className="p-4 font-medium bg-tertiary/90 border-r sticky left-0 z-10">
+              Room
+            </div>
+            {weekDays.map((day, index) => (
+              <div 
+                key={index} 
+                className={`p-4 font-medium text-center ${isSameDay(day, new Date()) ? 'bg-secondary' : 'bg-tertiary/90'}`}
+              >
+                {format(day, 'EEE, dd/MM')}
+              </div>
+            ))}
+          </div>
+          
+          {/* Room Type sections with 5 rooms each */}
+          {uniqueRoomTypes.length === 0 ? (
+            <div className="p-8 text-center">
+              <FaExclamationCircle className="mx-auto mb-2 text-3xl text-gray-400" />
+              <p>No room types found. Please add rooms first.</p>
+            </div>
+          ) : (
+            <div>
+              {uniqueRoomTypes.map((roomType) => (
+                <div key={roomType} className="mb-8">
+                  {/* Room Type Header */}
+                  <div className="bg-tertiary text-primary p-3 font-bold">
+                    {roomType} Room Type
+                  </div>
+                  
+                  {/* 5 Rooms of this type */}
+                  {[1, 2, 3, 4, 5].map((roomNumber) => (
+                    <div key={`${roomType}-${roomNumber}`} className="grid grid-cols-8 border-b">
+                      {/* Room info cell */}
+                      <div className="p-3 border-r flex flex-col justify-center">
+                        <div className="font-medium text-primary">{roomType} Room</div>
+                        <div className="text-sm text-secondary font-semibold">Room #{roomNumber}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {rooms.find(r => r.roomType === roomType)?.capacity || 0} guests
+                        </div>
+                      </div>
+                      
+                      {/* Days of the week */}
+                      {weekDays.map((day, dayIndex) => {
+                        const booking = getBookingForRoomOnDate(roomType, roomNumber, day);
+                        const hasBooking = booking !== null;
+                        
+                        return (
+                          <div 
+                            key={dayIndex} 
+                            className={`p-2 border-r ${hasBooking ? 'bg-yellow-50' : ''}`}
+                          >
+                            {hasBooking ? (
+                              <div className={`rounded-md border p-2 ${getStatusClass(booking.status || 'confirmed')}`}>
+                                <div className="font-medium text-sm">{booking.guestName}</div>
+                                <div className="text-xs">BID: {booking.bookingId}</div>
+                                <div className="flex items-center text-xs mt-1">
+                                  {getPaymentStatusIcon(booking)}
+                                  <span>{getPaymentStatusText(booking)}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="h-full min-h-[80px] flex items-center justify-center text-gray-400">
+                                <span>Available</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* MOBILE VIEW - Only visible below sm breakpoint */}
+      <div className="bg-white rounded-lg shadow overflow-hidden sm:hidden">
+        {/* Header with just 3 days */}
+        <div className="grid grid-cols-4 border-b">
+          <div className="p-3 font-medium bg-tertiary/90 border-r">
+            Room
+          </div>
+          {mobileDays.map((day, index) => (
             <div 
               key={index} 
-              className={`p-4 font-medium text-center ${isSameDay(day, new Date()) ? 'bg-secondary' : 'bg-tertiary/90'}`}
+              className={`p-2 font-medium text-center ${isSameDay(day, new Date()) ? 'bg-secondary' : 'bg-tertiary/90'}`}
             >
-              {format(day, 'EEE, dd/MM/yyyy')}
+              <div className="text-xs">{format(day, 'EEE')}</div>
+              <div className="text-xs">{format(day, 'dd/MM')}</div>
             </div>
           ))}
         </div>
         
         {/* Room Type sections with 5 rooms each */}
         {uniqueRoomTypes.length === 0 ? (
-          <div className="p-8 text-center">
-            <FaExclamationCircle className="mx-auto mb-2 text-3xl text-gray-400" />
-            <p>No room types found. Please add rooms first.</p>
+          <div className="p-4 text-center">
+            <FaExclamationCircle className="mx-auto mb-2 text-xl text-gray-400" />
+            <p className="text-sm">No room types found</p>
           </div>
         ) : (
           <div>
             {uniqueRoomTypes.map((roomType) => (
-              <div key={roomType} className="mb-8">
+              <div key={roomType} className="mb-4">
                 {/* Room Type Header */}
-                <div className="bg-primary text-white p-3 font-bold">
+                <div className="bg-tertiary text-primary p-2 text-sm font-bold">
                   {roomType} Room Type
                 </div>
                 
                 {/* 5 Rooms of this type */}
                 {[1, 2, 3, 4, 5].map((roomNumber) => (
-                  <div key={`${roomType}-${roomNumber}`} className="grid grid-cols-8 border-b">
+                  <div key={`${roomType}-${roomNumber}`} className="grid grid-cols-4 border-b">
                     {/* Room info cell */}
-                    <div className="p-3 border-r flex flex-col justify-center">
-                      <div className="font-medium text-primary">{roomType} Room</div>
-                      <div className="text-sm text-secondary font-semibold">Room #{roomNumber}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {rooms.find(r => r.roomType === roomType)?.capacity || 0} guests
-                      </div>
+                    <div className="p-2 border-r flex flex-col justify-center">
+                      <div className="font-medium text-xs text-primary">{roomType} 0{roomNumber}</div>
+                      {/* <div className="text-xs text-secondary font-semibold">#{roomNumber}</div> */}
                     </div>
                     
-                    {/* Days of the week */}
-                    {weekDays.map((day, dayIndex) => {
+                    {/* Only 3 days for mobile */}
+                    {mobileDays.map((day, dayIndex) => {
                       const booking = getBookingForRoomOnDate(roomType, roomNumber, day);
                       const hasBooking = booking !== null;
                       
                       return (
                         <div 
                           key={dayIndex} 
-                          className={`p-2 border-r ${hasBooking ? 'bg-yellow-50' : ''}`}
+                          className={`p-1 border-r ${hasBooking ? 'bg-yellow-50' : ''}`}
                         >
                           {hasBooking ? (
-                            <div className={`rounded-md border p-2 ${getStatusClass(booking.status || 'confirmed')}`}>
-                              <div className="font-medium text-sm">{booking.guestName}</div>
-                              <div className="text-xs">BID: {booking.bookingId}</div>
-                              <div className="flex items-center text-xs mt-1">
+                            <div className={`rounded-md border p-1 ${getStatusClass(booking.status || 'confirmed')}`}>
+                              <div className="font-medium text-xs truncate">{booking.guestName}</div>
+                              <div className="flex items-center text-[10px] mt-0.5 truncate">
                                 {getPaymentStatusIcon(booking)}
-                                <span>{getPaymentStatusText(booking)}</span>
+                                <span className="truncate">{getPaymentStatusText(booking)}</span>
                               </div>
                             </div>
                           ) : (
-                            <div className="h-full flex items-center justify-center text-gray-400">
+                            <div className="h-full min-h-[60px] flex items-center justify-center text-gray-400 text-xs py-4">
                               <span>Available</span>
                             </div>
                           )}
@@ -450,20 +559,20 @@ const BookingList = ({ token }) => {
             ))}
           </div>
         )}
-                {/* Color legend for booking status */}
-        <div className="p-4 bg-tertiary/90 border-t">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div className="text-sm font-medium mb-2">Payment Status:</div>
-              <div className="flex flex-wrap gap-3">
-                <div className="flex items-center">
-                  <FaCreditCard className="text-green-600 mr-1" />
-                  <span className="text-xs">Paid</span>
-                </div>
-                <div className="flex items-center">
-                  <FaMoneyBill className="text-green-600 mr-1" />
-                  <span className="text-xs">Pay Cash at Hotel</span>
-                </div>
+      </div>
+      {/* Color legend for booking status */}
+      <div className="p-2 sm:p-4 bg-tertiary/90 border-t">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
+          <div>
+            <div className="text-xs sm:text-sm font-medium mb-1 sm:mb-2">Payment Status:</div>
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              <div className="flex items-center">
+                <FaCreditCard className="text-green-600 mr-1 text-xs sm:text-sm" />
+                <span className="text-[10px] sm:text-xs">Paid</span>
+              </div>
+              <div className="flex items-center">
+                <FaMoneyBill className="text-green-600 mr-1 text-xs sm:text-sm" />
+                <span className="text-[10px] sm:text-xs">Pay Cash at Hotel</span>
               </div>
             </div>
           </div>
