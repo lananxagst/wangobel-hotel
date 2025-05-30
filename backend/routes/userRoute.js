@@ -1,5 +1,5 @@
 import express from "express"
-import { adminLogin, loginUser, registerUser, createAdmin, googleLogin, getUserProfile, updateUserProfile, uploadUserPhoto } from "../controllers/userController.js"
+import { adminLogin, loginUser, registerUser, createAdmin, googleLogin, getUserProfile, updateUserProfile, uploadUserPhoto, forgotPassword, resetPassword } from "../controllers/userController.js"
 import { authenticateToken } from "../middleware/auth.js"
 
 const userRouter = express.Router()
@@ -8,6 +8,8 @@ const userRouter = express.Router()
 userRouter.post('/register', registerUser)
 userRouter.post('/login', loginUser)
 userRouter.post('/google-login', googleLogin)
+userRouter.post('/forgot-password', forgotPassword)
+userRouter.post('/reset-password', resetPassword)
 
 // Protected routes
 userRouter.get('/profile', authenticateToken, getUserProfile)

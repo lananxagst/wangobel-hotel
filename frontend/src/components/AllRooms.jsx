@@ -169,27 +169,27 @@ const AllRooms = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white p-8 border border-gray-100 mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mb-6 md:mb-8">          
+          <div className="flex flex-col sm:flex-row lg:flex-row w-full gap-3 sm:gap-4 flex-wrap">
             {/* Search */}
-            <div className="flex items-center bg-extra-light p-3 border border-gray-100">
+            <div className="flex items-center bg-extra-light p-3 border border-gray-100 flex-1 min-w-[200px]">
               <FaSearch className="text-gray-400 mr-2" />
               <input
                 type="text"
                 placeholder="Search rooms..."
-                className="bg-transparent w-full outline-none"
+                className="bg-transparent w-full outline-none text-sm md:text-base"
                 value={searchTerm}
                 onChange={handleSearch}
               />
             </div>
 
             {/* Room Type Filter */}
-            <div className="relative flex items-center bg-extra-light p-3 border border-gray-100">
+            <div className="relative flex items-center bg-extra-light p-2 md:p-3 border border-gray-100 flex-1 min-w-[180px]">
               <FaBed className="text-gray-400 mr-2" />
               <div className="relative w-full" ref={roomTypeRef}>
                 <button
                   type="button"
-                  className="flex justify-between items-center w-full bg-transparent text-text-dark cursor-pointer focus:outline-none"
+                  className="flex justify-between items-center w-full bg-transparent text-text-dark cursor-pointer focus:outline-none text-sm md:text-base"
                   onClick={() => setIsRoomTypeOpen(!isRoomTypeOpen)}
                 >
                   <span>{filters.roomType === 'all' ? 'All Room Types' : filters.roomType}</span>
@@ -223,12 +223,12 @@ const AllRooms = () => {
             </div>
 
             {/* Capacity Filter */}
-            <div className="relative flex items-center bg-extra-light p-3 border border-gray-100">
+            <div className="relative flex items-center bg-extra-light p-2 md:p-3 border border-gray-100 flex-1 min-w-[180px]">
               <FaUsers className="text-gray-400 mr-2" />
               <div className="relative w-full" ref={capacityRef}>
                 <button
                   type="button"
-                  className="flex justify-between items-center w-full bg-transparent text-text-dark cursor-pointer focus:outline-none"
+                  className="flex justify-between items-center w-full bg-transparent text-text-dark cursor-pointer focus:outline-none text-sm md:text-base"
                   onClick={() => setIsCapacityOpen(!isCapacityOpen)}
                 >
                   <span>
@@ -278,7 +278,7 @@ const AllRooms = () => {
             No rooms match your criteria
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
             {roomTypes.map((type) => {
               const roomOfType = filteredRooms.find(room => room.roomType === type);
               if (!roomOfType) return null;
@@ -286,7 +286,7 @@ const AllRooms = () => {
               return (
                 <div 
                   key={roomOfType._id} 
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full"
                   onClick={() => navigate(`/book/${roomOfType._id}`)}
                   role="button"
                   tabIndex={0}
@@ -296,31 +296,32 @@ const AllRooms = () => {
                     <img
                       src={roomOfType.images?.[0]?.url || '/placeholder-room.jpg'}
                       alt={roomOfType.name}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-40 sm:h-44 md:h-48 object-cover"
+                      loading="lazy"
                     />
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-secondary">
                       {formatToIDR(roomOfType.price)} / night
                     </div>
                   </div>
-                  <div className="p-4 space-y-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-800">{roomOfType.name}</h3>
-                      <p className="text-gray-600 mt-1 line-clamp-2">{roomOfType.description}</p>
+                  <div className="p-3 md:p-4 flex flex-col h-full">
+                    <div className="mb-3 md:mb-4">
+                      <h3 className="text-lg md:text-xl font-semibold text-gray-800">{roomOfType.name}</h3>
+                      <p className="text-gray-600 mt-1 text-sm md:text-base line-clamp-2">{roomOfType.description}</p>
                     </div>
                     
-                    <div className="flex items-center gap-4 text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <FaBed className="text-secondary" />
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 text-sm md:text-base mb-3 md:mb-4">
+                      <div className="flex items-center gap-1 md:gap-2 h-6">
+                        <FaBed className="text-secondary text-sm md:text-base flex-shrink-0" />
                         <span>{roomOfType.roomType}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <FaUsers className="text-secondary" />
+                      <div className="flex items-center gap-1 md:gap-2 h-6">
+                        <FaUsers className="text-secondary text-sm md:text-base flex-shrink-0" />
                         <span>Up to {roomOfType.capacity} guests</span>
                       </div>
                     </div>
 
                     <div 
-                      className="w-full py-2.5 bg-secondary text-white rounded-md hover:bg-secondary/90 transition-colors font-medium text-center cursor-pointer"
+                      className="w-full py-2.5 bg-secondary text-white rounded-md hover:bg-secondary/90 transition-colors font-medium text-center cursor-pointer mt-auto"
                     >
                       Book Now
                     </div>

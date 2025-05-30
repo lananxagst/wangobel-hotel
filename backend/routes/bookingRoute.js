@@ -2,6 +2,7 @@ import express from 'express';
 import {
     getAllBookings,
     getUserBookings,
+    getUserBookingsByEmail,
     createBooking,
     updateBookingStatus,
     cancelBooking,
@@ -14,6 +15,7 @@ const router = express.Router();
 
 // Public routes
 router.get('/user/:userId', protect, getUserBookings);
+router.get('/user-email/:email', protect, getUserBookingsByEmail);
 router.get('/:id', protect, getBookingDetails);
 router.post('/', protect, createBooking);
 router.patch('/:id/cancel', protect, cancelBooking);

@@ -1,8 +1,10 @@
 import userModel from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import validator from "validator";
 import { cloudinary } from '../config/cloudinary.js';
 import multer from 'multer';
+import { sendPasswordResetEmail } from '../utils/emailService.js';
 
 // Configure multer for memory storage
 const upload = multer({
@@ -46,37 +48,59 @@ const loginUser = async (req, res) => {
 
 // CONTROLLER FUNCTION FOR USER REGISTER
 const registerUser = async (req, res) => {
-
     try {
         const { name, email, password } = req.body
+        
+        // Validate input data
+        if (!name || !email || !password) {
+            return res.json({ success: false, message: "Please provide name, email, and password" })
+        }
+        
         // CHECKING IF USER ALREADY EXISTS
         const exists = await userModel.findOne({ email })
         if (exists) {
             return res.json({ success: false, message: "User already exists" })
         }
-        // VALIDATE PASSWORD AND CHECKING PASSWORD STRENGTH
+        
+        // VALIDATE EMAIL FORMAT
         if (!validator.isEmail(email)) {
             return res.json({ success: false, message: "Please enter a valid email" })
         }
+        
+        // VALIDATE PASSWORD STRENGTH
         if (password.length < 8) {
-            return res.json({ success: false, message: "Please enter a strong password" })
+            return res.json({ success: false, message: "Password must be at least 8 characters long" })
         }
 
         // HASHING USER PASSWORD
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
 
+        // Create default avatar using user's name
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
+
         const newUser = new userModel({
             name: name,
             email: email,
-            password: hashedPassword
+            password: hashedPassword,
+            picture: avatarUrl
         })
 
         const user = await newUser.save()
 
         const token = createToken(user._id)
 
-        res.json({ success: true, token })
+        // Return user info along with token
+        res.json({ 
+            success: true, 
+            token,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                picture: user.picture
+            }
+        })
 
     } catch (error) {
         console.log(error)
@@ -188,17 +212,34 @@ const googleLogin = async (req, res) => {
                 password: bcrypt.hashSync(googleId + process.env.JWT_SECRET, 10) // Create secure random password
             })
         } else {
-            // Update existing user's Google ID and picture if they don't have it
+            // Update existing user's Google ID if they don't have it
+            // But don't override existing picture if user has customized it
             if (!user.googleId) {
                 user.googleId = googleId
-                user.picture = picture
+                // Only set picture from Google if user doesn't have a picture yet
+                if (!user.picture) {
+                    user.picture = picture
+                }
                 await user.save()
             }
         }
 
-        // Create token and send response
+        // Create token and send response with user data
         const token = createToken(user._id)
-        res.json({ success: true, token })
+        
+        // Return current user data from database (including the most recent picture)
+        const userData = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            picture: user.picture
+        }
+        
+        res.json({ 
+            success: true, 
+            token,
+            user: userData
+        })
 
     } catch (error) {
         console.error(error)
@@ -283,13 +324,127 @@ const uploadUserPhoto = async (req, res) => {
     });
 };
 
+// CONTROLLER FUNCTION FOR FORGOT PASSWORD
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // Validate email format
+        if (!validator.isEmail(email)) {
+            return res.json({ success: false, message: "Please enter a valid email" });
+        }
+
+        // Check if user exists
+        const user = await userModel.findOne({ email });
+        if (!user) {
+            // For security reasons, don't reveal if email exists or not
+            return res.json({ success: true, message: "If your email is registered, you will receive a password reset link" });
+        }
+
+        // Generate reset token
+        const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Save reset token to user document with expiry
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+        await user.save();
+
+        // Send password reset email
+        const emailSent = await sendPasswordResetEmail(email, resetToken);
+        
+        if (!emailSent) {
+            return res.json({ 
+                success: false, 
+                message: "Failed to send password reset email. Please try again later." 
+            });
+        }
+        
+        // Log for debugging
+        console.log(`Reset token for ${email}: ${resetToken}`);
+
+        // Return success message
+        res.json({ 
+            success: true, 
+            message: "If your email is registered, you will receive a password reset link",
+            // In development, also return the token and reset URL for testing
+            // These should be removed in production
+            devInfo: {
+                resetToken,
+                resetUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
+            }
+        });
+
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// CONTROLLER FUNCTION FOR RESET PASSWORD
+const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        
+        console.log('Reset password request received with token:', token);
+
+        // Validate password
+        if (!password || password.length < 8) {
+            return res.json({ success: false, message: "Password must be at least 8 characters long" });
+        }
+
+        // Verify token
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+            console.log('Token decoded successfully:', decoded);
+        } catch (error) {
+            console.error('Token verification failed:', error.message);
+            return res.json({ success: false, message: "Invalid or expired token" });
+        }
+
+        // Find user with token and check expiry
+        const user = await userModel.findOne({
+            _id: decoded.id,
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        console.log('User found by token:', user ? 'Yes' : 'No');
+
+        if (!user) {
+            return res.json({ success: false, message: "Invalid or expired token" });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Update user password and clear reset token fields
+        user.password = hashedPassword;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+        
+        console.log('Password reset successful for user:', user.email);
+
+        // Return success
+        res.json({ success: true, message: "Password has been reset successfully" });
+
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
 export {
     registerUser,
     loginUser,
     googleLogin,
     getUserProfile,
     updateUserProfile,
+    uploadUserPhoto,
     adminLogin,
     createAdmin,
-    uploadUserPhoto
+    forgotPassword,
+    resetPassword
 }

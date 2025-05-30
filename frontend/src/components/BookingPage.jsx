@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaUsers, FaCreditCard, FaClock } from 'react-icons/fa';
-import { backend_url } from '../App';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { formatToIDR, convertToMidtransAmount } from '../utils/currency';
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const BookingPage = () => {
   const { roomId } = useParams();
@@ -32,7 +33,7 @@ const BookingPage = () => {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const response = await axios.get(`${backend_url}/api/rooms/${roomId}`);
+        const response = await axios.get(`${backendUrl}/api/rooms/${roomId}`);
         setRoom(response.data);
       } catch (error) {
         console.error('Error fetching room:', error);
@@ -68,7 +69,7 @@ const BookingPage = () => {
       // Tambahkan timestamp untuk menghindari caching
       const timestamp = new Date().getTime();
       const response = await fetch(
-        `${backend_url}/api/rooms/${roomId}?checkIn=${formattedDate}&_t=${timestamp}`,
+        `${backendUrl}/api/rooms/${roomId}?checkIn=${formattedDate}&_t=${timestamp}`,
         {
           method: 'GET',
           headers: {
@@ -97,7 +98,7 @@ const BookingPage = () => {
       });
       
       if (!isAvailable) {
-        const errorMessage = `No rooms available for check-in date ${utcDate.toLocaleDateString()}`;
+        const errorMessage = `No rooms of this type available for check-in date ${utcDate.toLocaleDateString()}`;
         console.log('Setting error:', errorMessage);
         setErrors(prev => ({
           ...prev,
@@ -263,10 +264,11 @@ const BookingPage = () => {
       const totalInK = nights * room.price; // Calculate total in K (e.g., 2 nights * 100K = 200K)
       const totalAmountMidtrans = convertToMidtransAmount(totalInK); // Convert to actual rupiah for Midtrans (200K -> 200000)
 
-      // Create booking data with consistent ID format
+      // Create booking data with consistent ID format and timestamp
       const bookingId = `BOOK-${Date.now()}`;
       const tempBooking = {
         _id: bookingId,
+        createdAt: Date.now(), // Add timestamp for auto-cleanup
         roomId: roomId,
         roomName: room.name,
         roomType: room.roomType,
@@ -280,14 +282,51 @@ const BookingPage = () => {
         totalAmount: totalInK, // Store amount in K for display
         totalAmountMidtrans: totalAmountMidtrans, // Store full rupiah amount for Midtrans
         status: 'pending',
-        createdAt: new Date().toISOString(),
+
         paymentMethod: 'midtrans'
       };
 
-      // Save to localStorage
-      const pendingBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
-      pendingBookings.push(tempBooking);
-      localStorage.setItem('pendingBookings', JSON.stringify(pendingBookings));
+      // Helper function to get and save pending bookings by user email
+      const savePendingBooking = (booking) => {
+        try {
+          // Get user email from localStorage for namespace
+          const userData = JSON.parse(localStorage.getItem('user') || '{}');
+          const userEmail = userData.email ? userData.email.toLowerCase().trim() : '';
+          
+          if (!userEmail) {
+            console.error('User email not found in localStorage, cannot save pending booking');
+            throw new Error('No user email found');
+          }
+          
+          // Log for debugging
+          console.log(`Saving pending booking for user: ${userEmail}`);
+          console.log('Booking data:', booking);
+          
+          // 1. Save to user-specific storage
+          const userKey = `pendingBookings_${userEmail}`;
+          const userBookings = JSON.parse(localStorage.getItem(userKey) || '[]');
+          userBookings.push(booking);
+          localStorage.setItem(userKey, JSON.stringify(userBookings));
+          console.log(`Saved to ${userKey}, total: ${userBookings.length} bookings`);
+          
+          // 2. Also save to global pendingBookings for backward compatibility
+          const allBookings = JSON.parse(localStorage.getItem('pendingBookings') || '[]');
+          allBookings.push(booking);
+          localStorage.setItem('pendingBookings', JSON.stringify(allBookings));
+          console.log(`Also saved to global pendingBookings, total: ${allBookings.length} bookings`);
+          
+          return true;
+        } catch (error) {
+          console.error('Error saving pending booking:', error);
+          return false;
+        }
+      };
+      
+      // Save booking to localStorage
+      if (!savePendingBooking(tempBooking)) {
+        toast.error('Failed to save booking information. Please login again.');
+        return;
+      }
 
       // Navigate to payment page
       navigate('/payment', {

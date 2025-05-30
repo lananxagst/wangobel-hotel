@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Hotel Building Icon -->
-  <path d="M10 35V15L25 5L40 15V35H32V20H18V35H10Z" fill="#FF6B35"/>
-  <!-- WG Text -->
-  <path d="M50 30L55 10L60 25L65 10L70 30H65L63 20L60 30L57 20L55 30H50Z" fill="#2B2D42"/>
-  <path d="M75 10H85C88 10 90 12 90 15C90 17 89 19 87 20C89 21 90 23 90 25C90 28 88 30 85 30H75V10ZM80 18H84C85 18 85 17 85 16C85 15 85 14 84 14H80V18ZM80 26H84C85 26 85 25 85 24C85 23 85 22 84 22H80V26Z" fill="#2B2D42"/>
-</svg>

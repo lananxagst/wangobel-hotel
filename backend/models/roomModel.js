@@ -29,8 +29,11 @@ const reviewSchema = new mongoose.Schema({
 const roomSchema = new mongoose.Schema({
     roomNumber: {
         type: String,
-        required: true,
-        unique: true
+        required: false,
+        unique: true,
+        default: function() {
+            return 'R-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+        }
     },
     name: {
         type: String,

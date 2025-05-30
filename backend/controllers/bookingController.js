@@ -42,6 +42,58 @@ export const getUserBookings = async (req, res) => {
     }
 };
 
+// Get bookings by user email
+export const getUserBookingsByEmail = async (req, res) => {
+    try {
+        const { email } = req.params;
+        
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email parameter is required'
+            });
+        }
+
+        // Normalize email for consistent comparison
+        const normalizedEmail = email.toLowerCase().trim();
+        console.log(`Finding bookings for email: ${normalizedEmail}`);
+        
+        // Get user by email
+        const user = await import('../models/userModel.js')
+            .then(module => module.default.findOne({ email: normalizedEmail }));
+
+        if (!user) {
+            console.log(`No user found with email: ${normalizedEmail}`);
+            return res.status(200).json({
+                success: true,
+                bookings: [],
+                message: 'No user found with this email'
+            });
+        }
+
+        console.log(`Found user: ${user.name} (${user._id}) for email: ${normalizedEmail}`);
+        
+        // Get bookings by user id
+        const bookings = await Booking.find({ user: user._id })
+            .sort({ createdAt: -1 })
+            .populate('room', 'name roomType price images');
+
+        console.log(`Found ${bookings.length} bookings for user: ${user.name} (${user._id})`);
+
+        res.status(200).json({
+            success: true,
+            bookings
+        });
+    } catch (error) {
+        console.error('Error in getUserBookingsByEmail:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching bookings by email',
+            error: error.message
+        });
+    }
+};
+
 // Create new booking
 export const createBooking = async (req, res) => {
     try {
@@ -131,23 +183,32 @@ export const createBooking = async (req, res) => {
         if (availableRooms <= 0) {
             return res.status(400).json({
                 success: false,
-                message: `No rooms available for check-in date ${checkInDate.toLocaleDateString()}`
+                message: `No rooms of this type available for check-in date ${checkInDate.toLocaleDateString()}`
             });
         }
 
         // Buat booking baru
-        const booking = await Booking.create({
+        const bookingData = {
             ...req.body,
             user: req.user._id,
             room: room._id,
             roomName: room.name,
-            roomType: room.roomType,
-            paymentDetails: {
+            roomType: room.roomType
+        };
+        
+        // Jika paymentDetails tidak dikirim dari frontend, buat default
+        if (!req.body.paymentDetails) {
+            bookingData.paymentDetails = {
                 status: 'pending',
                 method: req.body.paymentMethod || 'midtrans',
                 amount: req.body.totalAmount
-            }
-        });
+            };
+        }
+        
+        // Log booking data untuk debugging
+        console.log('Creating booking with data:', JSON.stringify(bookingData, null, 2));
+        
+        const booking = await Booking.create(bookingData);
 
         res.status(201).json({
             success: true,

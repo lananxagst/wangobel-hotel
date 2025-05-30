@@ -140,6 +140,12 @@ const Profile = () => {
                 src={user?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=random`}
                 alt={user?.name}
                 className="w-full h-full rounded-full object-cover"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  // If image fails to load, use UI Avatars as fallback
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=random`;
+                }}
               />
               <input
                 type="file"

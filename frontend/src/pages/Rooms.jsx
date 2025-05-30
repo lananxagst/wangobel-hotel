@@ -37,7 +37,11 @@ const Rooms = () => {
           // Filter rooms based on capacity
           const availableRooms = availabilityResponse.data.filter(room => 
             room.capacity >= guests
-          );
+          ).map(room => ({
+            ...room,
+            // Explicitly mark rooms as fully booked if they have 0 available rooms
+            isFullyBooked: room.availableRooms <= 0
+          }));
 
           // Check if any suitable rooms are available
           const hasAvailableRooms = availableRooms.some(room => 
@@ -57,7 +61,12 @@ const Rooms = () => {
         } else {
           // If no dates selected, just get all rooms but still filter by capacity
           const allRoomsResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/rooms`);
-          const filteredRooms = allRoomsResponse.data.filter(room => room.capacity >= guests);
+          const filteredRooms = allRoomsResponse.data.filter(room => room.capacity >= guests)
+            .map(room => ({
+              ...room,
+              // Default isFullyBooked based on the totalRooms property
+              isFullyBooked: (room.availableRooms || room.totalRooms || 0) <= 0
+            }));
           
           if (filteredRooms.length === 0 && allRoomsResponse.data.length > 0) {
             toast.error(`No rooms available for ${guests} guests. Please select a smaller group size.`);
@@ -181,28 +190,39 @@ const Rooms = () => {
                 </div>
 
                 {/* Book Now Button */}
-                <button 
-                  onClick={() => {
-                    const params = new URLSearchParams(window.location.search);
-                    const checkIn = params.get('checkIn');
-                    const checkOut = params.get('checkOut');
-                    const guests = params.get('guests');
+                <div className="relative">
+                  {/* Debug information - only for development */}
+                  {/* <div className="text-xs text-gray-400 mb-2">
+                    Available: {room.availableRooms || 0}, 
+                    isFullyBooked: {room.isFullyBooked ? 'true' : 'false'}
+                  </div> */}
+                
+                  <button 
+                    onClick={() => {
+                      // Only navigate if room is available
+                      if (!room.isFullyBooked && room.availableRooms > 0) {
+                        const params = new URLSearchParams(window.location.search);
+                        const checkIn = params.get('checkIn');
+                        const checkOut = params.get('checkOut');
+                        const guests = params.get('guests');
 
-                    // Build URL with existing parameters
-                    const bookingUrl = `/book/${room._id}?` + 
-                      (checkIn ? `checkIn=${checkIn}&` : '') +
-                      (checkOut ? `checkOut=${checkOut}&` : '') +
-                      (guests ? `guests=${guests}` : '');
+                        // Build URL with existing parameters
+                        const bookingUrl = `/book/${room._id}?` + 
+                          (checkIn ? `checkIn=${checkIn}&` : '') +
+                          (checkOut ? `checkOut=${checkOut}&` : '') +
+                          (guests ? `guests=${guests}` : '');
 
-                    navigate(bookingUrl);
-                  }}
-                  disabled={room.isFullyBooked}
-                  className={`w-full py-3 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${room.isFullyBooked 
-                    ? 'bg-gray-400 cursor-not-allowed text-gray-200' 
-                    : 'bg-secondary text-white hover:bg-secondary/90 focus:ring-secondary'}`}
-                >
-                  Book Now
-                </button>
+                        navigate(bookingUrl);
+                      }
+                    }}
+                    disabled={room.isFullyBooked || room.availableRooms <= 0}
+                    className={`w-full py-3 rounded-lg font-semibold transition-all ${(room.isFullyBooked || room.availableRooms <= 0) 
+                      ? 'bg-gray-300 cursor-not-allowed text-gray-500 opacity-70 hover:shadow-none' 
+                      : 'bg-secondary text-white hover:bg-secondary/90 hover:shadow-lg focus:ring-2 focus:ring-offset-2 focus:ring-secondary'}`}
+                  >
+                    {(room.isFullyBooked || room.availableRooms <= 0) ? 'Not Available' : 'Book Now'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

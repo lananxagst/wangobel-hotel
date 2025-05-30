@@ -37,17 +37,17 @@ const Header = () => {
       <header className="w-full bg-primary text-white">
         <div className="max-w-container mx-auto px-4 py-6 flex justify-between items-center">
           {/* LOGO  */}
-          <Link to={"/"} className="flex items-center -ml-3 gap-2">
+          <Link to={"/"} className="flex items-center -ml-1 md:-ml-3 gap-1 md:gap-2">
             <img 
               src={logo} 
               alt="WG Hotel Logo" 
-              className="h-16 w-auto hover:opacity-90 transition-opacity scale-150 -translate-y-1 gap-2" 
+              className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto hover:opacity-90 transition-opacity md:scale-125 lg:scale-150 md:-translate-y-1" 
             />
             <div className="flex flex-col">
-              <span className="text-xl font-bold leading-none">
+              <span className="text-base sm:text-lg md:text-xl font-bold leading-none">
                 WG HOTEL
               </span>
-              <span className="text-sm font-medium text-secondary mt-1 ml-3">
+              <span className="text-xs sm:text-sm font-medium text-secondary mt-1 ml-2 md:ml-3">
                 JIMBARAN
               </span>
             </div>
@@ -61,80 +61,105 @@ const Header = () => {
               <Link to="/my-reservations" className="text-white hover:text-secondary transition-colors">Reservations</Link>
             )}
             <Link to="/contact" className="text-white hover:text-secondary transition-colors">Contact</Link>
-            
           </div>
-          {/* LOGIN */}
+          
+          {/* RIGHT SIDE: LOGIN/PROFILE & MENU */}
           <div className="flex items-center gap-4">
             {user ? (
-              <div className="hidden lg:block relative" ref={profileRef}>
+              <>
+                {/* Mobile Avatar (visible on small screens) */}
                 <img
                   src={user.picture}
                   alt={user.name}
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="w-8 h-8 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-secondary transition-all"
+                  onClick={toggleMenu}
+                  className="lg:hidden w-8 h-8 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-secondary transition-all"
                   crossOrigin="anonymous"
                   referrerPolicy="no-referrer"
                   onError={(e) => {
                     e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`;
                   }}
                 />
-                {/* Profile Dropdown */}
-                {showProfileMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                      <p className="text-xs text-gray-500">{user.email}</p>
+                
+                {/* Desktop Avatar (visible on large screens) */}
+                <div className="hidden lg:block relative" ref={profileRef}>
+                  <img
+                    src={user.picture}
+                    alt={user.name}
+                    onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    className="w-8 h-8 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-secondary transition-all"
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`;
+                    }}
+                  />
+                  {/* Profile Dropdown */}
+                  {showProfileMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
+                      </div>
+                      <Link 
+                        to="/profile" 
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-secondary cursor-pointer"
+                        onClick={() => setShowProfileMenu(false)}
+                      >
+                        Profile
+                      </Link>
+                      
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setShowProfileMenu(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-secondary cursor-pointer"
+                      >
+                        Logout
+                      </button>
                     </div>
-                    <Link 
-                      to="/profile" 
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-secondary cursor-pointer"
-                      onClick={() => setShowProfileMenu(false)}
-                    >
-                      Profile
-                    </Link>
-                    <Link 
-                      to="/orders" 
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-secondary cursor-pointer"
-                      onClick={() => setShowProfileMenu(false)}
-                    >
-                      Orders
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setShowProfileMenu(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-secondary cursor-pointer"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </>
             ) : (
-              <Link
-                to="/login"
-                className="hidden lg:flex items-center gap-2 text-white hover:text-secondary transition-colors"
-              >
-                <RiUserLine className="text-xl" />
-                <span>Login</span>
-              </Link>
+              <>
+                {/* Mobile Login Link (hidden on desktop) */}
+                <Link
+                  to="/login"
+                  className="lg:hidden flex items-center gap-2 text-white hover:text-secondary transition-colors"
+                  onClick={toggleMenu}
+                >
+                  <RiUserLine className="text-xl" />
+                </Link>
+
+                {/* Desktop Login Link (hidden on mobile) */}
+                <Link
+                  to="/login"
+                  className="hidden lg:flex items-center gap-2 text-white hover:text-secondary transition-colors"
+                >
+                  <RiUserLine className="text-xl" />
+                  <span>Login</span>
+                </Link>
+              </>
             )}
-            {/* MENU TOGGLE */}
-            <button
-              onClick={toggleMenu}
-              className="lg:hidden text-white hover:text-secondary transition-colors"
-            >
-              {menuOpened ? (
-                <FaBarsStaggered className="text-2xl" />
-              ) : (
-                <FaBars className="text-2xl" />
-              )}
-            </button>
+            
+            {/* MENU TOGGLE - only show if not showing mobile avatar */}
+            {(!user || (user && window.innerWidth > 768)) && (
+              <button
+                onClick={toggleMenu}
+                className="lg:hidden text-white hover:text-secondary transition-colors"
+              >
+                {menuOpened ? (
+                  <FaBarsStaggered className="text-2xl" />
+                ) : (
+                  <FaBars className="text-2xl" />
+                )}
+              </button>
+            )}
           </div>
         </div>
       </header>
-      {menuOpened && <MobileMenu onClose={toggleMenu} />}
+      {menuOpened && <MobileMenu onClose={toggleMenu} user={user} handleLogout={handleLogout} />}
     </>
   );
 };

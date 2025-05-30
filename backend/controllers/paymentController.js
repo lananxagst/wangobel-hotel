@@ -57,20 +57,26 @@ export const initiateMidtransPayment = async (req, res) => {
         const orderId = `BOOK-${Date.now()}`;
         console.log('Creating transaction with order ID:', orderId);
 
-        const transactionDetails = {
+        const parameter = {
             transaction_details: {
                 order_id: orderId,
-                gross_amount: parseInt(amount)
+                gross_amount: amount
             },
             credit_card: {
                 secure: true
             },
             customer_details: {
                 first_name: customerDetails.firstName,
-                last_name: customerDetails.lastName,
+                last_name: customerDetails.lastName || '',
                 email: customerDetails.email,
                 phone: customerDetails.phone
             },
+            custom_field1: bookingId, // Store booking ID
+            custom_field2: bookingId  // Store selected booking ID for validation
+        };
+
+        const transactionDetails = {
+            ...parameter,
             enabled_payments: [
                 "credit_card",        // Kartu kredit
                 "bca_va",            // BCA Virtual Account
@@ -237,26 +243,93 @@ export const handleMidtransNotification = async (req, res) => {
             paymentType
         });
 
-        // Extract booking ID from order ID (format: BOOK-{bookingId}-{timestamp})
-        const bookingIdMatch = orderId.match(/BOOK-(.*?)-/);
-        if (!bookingIdMatch) {
-            console.error('Invalid order ID format:', orderId);
+        // Extract booking ID and selected booking ID from notification data
+        const bookingId = notification.custom_field1 || '';
+        const selectedBookingId = notification.custom_field2 || '';
+        const orderIdFromNotification = notification.order_id || '';
+
+        // Enhanced logging for troubleshooting
+        console.log('Notification data fields:', {
+            bookingId,
+            selectedBookingId,
+            orderIdFromNotification,
+            transactionId,
+            transactionStatus
+        });
+
+        // Use a fallback strategy for getting the booking ID
+        let finalBookingId = bookingId;
+
+        if (!finalBookingId) {
+            console.log('No custom_field1, checking custom_field2');
+            finalBookingId = selectedBookingId;
+        }
+
+        if (!finalBookingId && orderIdFromNotification.startsWith('BOOK-')) {
+            console.log('Extracting booking ID from order ID');
+            const match = orderIdFromNotification.match(/BOOK-(\d+)/);
+            if (match) {
+                const timestampFromOrder = match[1];
+                // Here we only have the timestamp, but we don't have the actual booking ID
+                // We need to search for bookings pending payment
+                console.log('Extracted timestamp from order ID:', timestampFromOrder);
+            }
+        }
+
+        if (!finalBookingId) {
+            console.error('Could not determine booking ID from notification');
+            return res.status(400).json({ 
+                success: false,
+                message: 'Could not determine booking ID' 
+            });
+        }
+
+        // Validate that this payment is for the selected booking if both values are present
+        if (bookingId && selectedBookingId && bookingId !== selectedBookingId) {
+            console.error('Payment is for a different booking:', {
+                paymentBookingId: bookingId,
+                selectedBookingId: selectedBookingId
+            });
+            return res.status(403).json({
+                success: false,
+                message: 'Payment is for a different booking'
+            });
+        }
+
+        if (!bookingId) {
+            console.error('Could not extract booking ID from order ID:', orderId);
             return res.status(400).json({ 
                 success: false,
                 message: 'Invalid order ID format' 
             });
         }
-
-        const bookingId = bookingIdMatch[1];
         console.log('Looking for booking:', bookingId);
 
-        // Find booking
-        const booking = await Booking.findById(bookingId);
+        // Find booking and check if it's already processed
+        const booking = await Booking.findById(finalBookingId);
         if (!booking) {
-            console.error('Booking not found:', bookingId);
+            console.error('Booking not found:', finalBookingId);
             return res.status(404).json({ 
                 success: false,
                 message: 'Booking not found' 
+            });
+        }
+
+        // Check if this transaction was already processed
+        if (booking.paymentDetails?.transactionId === transactionId) {
+            console.log('Transaction already processed:', transactionId);
+            return res.status(200).json({
+                success: true,
+                message: 'Transaction already processed'
+            });
+        }
+
+        // Check if this booking is already confirmed
+        if (booking.status === 'confirmed') {
+            console.log(`Booking already confirmed: ${finalBookingId}, transaction: ${transactionId}`);
+            return res.status(200).json({
+                success: true,
+                message: 'Booking already confirmed'
             });
         }
 

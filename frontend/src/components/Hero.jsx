@@ -9,6 +9,17 @@ const Hero = () => {
   const [checkinDate, setCheckinDate] = useState('');
   const [checkoutDate, setCheckoutDate] = useState('');
   const guestRef = useRef(null);
+  
+  // Fungsi untuk mengarahkan langsung ke halaman rooms dengan parameter tanggal dan jumlah tamu
+  const navigateToRooms = () => {
+    // Format tanggal untuk URL parameter
+    const formattedCheckIn = checkinDate;
+    const formattedCheckOut = checkoutDate;
+    const guests = selectedGuests;
+    
+    // Navigasi ke halaman rooms dengan parameter
+    navigate(`/rooms?checkIn=${formattedCheckIn}&checkOut=${formattedCheckOut}&guests=${guests}`);
+  };
 
   const getNextDay = (date) => {
     const next = new Date(date);
@@ -57,16 +68,16 @@ const Hero = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center text-white px-4 pb-32">
-        <h1 className="text-5xl font-bold mb-8 leading-tight mt-10">
+      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center text-white px-4 pb-32 pt-20 md:pt-20">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 md:mb-8 leading-tight">
           The Perfect<br />Base For You
         </h1>
-        <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+        <p className="text-base md:text-lg lg:text-xl text-gray-300 mb-6 md:mb-8 max-w-2xl mx-auto px-2">
           Experience luxury and comfort in our carefully curated spaces
         </p>
         <Link 
           to="/rooms"
-          className="inline-block bg-secondary hover:bg-secondary/90 text-primary font-bold py-4 px-10 rounded-none transition-colors font-header tracking-wider uppercase text-sm"
+          className="inline-block bg-secondary hover:bg-secondary/90 text-primary font-bold py-3 md:py-4 px-8 md:px-10 rounded-none transition-colors font-header tracking-wider uppercase text-sm"
         >
           Take A Tour
         </Link>
@@ -74,8 +85,8 @@ const Hero = () => {
 
       {/* Booking Form */}
       <div className="absolute left-0 right-0 bottom-0 transform translate-y-1/2 z-20 px-4">
-        <div className="bg-white p-6 rounded-lg w-full max-w-4xl mx-auto shadow-lg">
-          <form className="grid grid-cols-1 md:grid-cols-4 gap-6" onSubmit={(e) => {
+        <div className="bg-white p-4 md:p-6 rounded-lg w-full max-w-4xl mx-auto shadow-lg">
+          <form className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6" onSubmit={(e) => {
             e.preventDefault();
             
             // Validate dates
@@ -99,9 +110,9 @@ const Hero = () => {
               toast.error('Check-out date must be after check-in date');
               return;
             }
-
-            // Navigate to rooms with validated parameters
-            navigate(`/rooms?checkIn=${checkinDate}&checkOut=${checkoutDate}&guests=${selectedGuests}`);
+            
+            // Langsung arahkan ke halaman rooms
+            navigateToRooms();
           }}>
             <div className="md:col-span-1">
               <div className="relative">
@@ -111,11 +122,11 @@ const Hero = () => {
                   value={checkinDate}
                   onChange={handleCheckinChange}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all text-sm md:text-base"
                   placeholder="Check in"
                   required
                 />
-                <label className="absolute -top-2.5 left-2 bg-white px-2 text-sm font-medium text-gray-600">
+                <label className="absolute -top-2.5 left-2 bg-white px-2 text-xs md:text-sm font-medium text-gray-600">
                   Check in
                 </label>
               </div>
@@ -129,11 +140,11 @@ const Hero = () => {
                   value={checkoutDate}
                   onChange={handleCheckoutChange}
                   min={checkinDate ? getNextDay(checkinDate) : new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all text-sm md:text-base"
                   placeholder="Check out"
                   required
                 />
-                <label className="absolute -top-2.5 left-2 bg-white px-2 text-sm font-medium text-gray-600">
+                <label className="absolute -top-2.5 left-2 bg-white px-2 text-xs md:text-sm font-medium text-gray-600">
                   Check out
                 </label>
               </div>
@@ -144,7 +155,7 @@ const Hero = () => {
                 <select
                   value={selectedGuests}
                   onChange={(e) => setSelectedGuests(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all appearance-none"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all appearance-none text-sm md:text-base"
                   required
                 >
                   <option value="1">1 Person</option>
@@ -152,7 +163,7 @@ const Hero = () => {
                   <option value="3">3 People</option>
                   <option value="4">4 People</option>
                 </select>
-                <label className="absolute -top-2.5 left-2 bg-white px-2 text-sm font-medium text-gray-600">
+                <label className="absolute -top-2.5 left-2 bg-white px-2 text-xs md:text-sm font-medium text-gray-600">
                   Guest
                 </label>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
@@ -166,7 +177,7 @@ const Hero = () => {
             <div className="md:col-span-1">
               <button
                 type="submit"
-                className="w-full h-full px-6 py-3 bg-secondary text-white rounded-lg hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-opacity-50 transition-all font-medium text-base"
+                className="w-full bg-secondary hover:bg-secondary/90 text-primary font-bold py-2 md:py-3 px-4 md:px-6 rounded-lg transition-colors text-sm md:text-base"
               >
                 Check Availability
               </button>

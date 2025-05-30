@@ -1,7 +1,9 @@
 import { FaUserGroup } from 'react-icons/fa6'
 import { BiBed } from 'react-icons/bi'
+import { useNavigate } from 'react-router-dom'
 
 const About = () => {
+  const navigate = useNavigate()
   return (
     <section className='max-padd-container py-16 bg-gradient-to-br from-white to-gray-50'>
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
@@ -32,7 +34,7 @@ const About = () => {
           <p className='text-gray-600 leading-relaxed'>
             Welcome to a hidden realm of extraordinary accommodations where luxury, comfort, and adventure converge. Our underground hotels offer an unparalleled escape from the ordinary, inviting you to explore a subterranean world of wonders.
           </p>
-          <button className='bg-secondary text-white px-8 py-3 rounded-lg hover:bg-secondary/90 transition-colors'>
+          <button onClick={() => navigate('/rooms')} className='bg-secondary text-white px-8 py-3 rounded-lg hover:bg-secondary/90 transition-colors'>
             Book Now
           </button>
         </div>
