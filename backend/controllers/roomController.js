@@ -7,6 +7,7 @@ import { sendRoomUpdateEmail } from '../utils/emailService.js';
 // Get all rooms
 export const getRooms = async (req, res) => {
     try {
+        console.log('GET /api/rooms - Request received', { query: req.query });
         // Get query parameters
         const { checkIn, checkOut } = req.query;
         
@@ -105,10 +106,12 @@ export const getRooms = async (req, res) => {
             };
         }));
 
-        res.json(roomsWithAvailability);
+        console.log('GET /api/rooms - Success response with', roomsWithAvailability.length, 'rooms');
+        return res.json(roomsWithAvailability);
     } catch (error) {
-        console.error('Error in getRooms:', error);
-        res.status(500).json({ message: error.message });
+        console.error('Error getting rooms:', error.message);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
