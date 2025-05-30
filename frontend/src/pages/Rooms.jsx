@@ -4,7 +4,6 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaBed, FaUsers } from 'react-icons/fa';
 import { formatToIDR } from '../utils/currency';
-import { MdOutlineEventAvailable } from 'react-icons/md';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -100,133 +99,155 @@ const Rooms = () => {
   return (
     <div className="min-h-screen bg-tertiary py-12">
       <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-primary mb-8 text-center">Our Rooms</h1>
+        <h1 className="text-4xl font-bold text-primary mb-12 text-center">All Type Rooms</h1>
         
-        <div className="grid grid-cols-1 gap-8">
+        {/* REDESIGNED GRID LAYOUT - Responsif untuk berbagai ukuran layar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {rooms.map((room) => (
-            <div key={room._id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-              {/* Image Slider */}
-              <div className="relative h-96 group">
+            <div key={room._id} className="bg-white rounded-lg shadow-xl overflow-hidden transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 flex flex-col h-full">
+              {/* Image Slider - Ukuran yang lebih proporsional */}
+              <div className="relative aspect-[4/3] overflow-hidden group">
                 <Swiper
                   modules={[Navigation, Pagination, Autoplay]}
                   navigation
                   pagination={{ clickable: true }}
                   autoplay={{ delay: 5000, disableOnInteraction: false }}
                   loop={true}
-                  className="h-full
-                    [&_.swiper-button-next]:text-white [&_.swiper-button-next]:bg-primary/80 [&_.swiper-button-next]:w-12 [&_.swiper-button-next]:h-12 [&_.swiper-button-next]:rounded-full [&_.swiper-button-next]:transition-all [&_.swiper-button-next]:opacity-0 group-hover:[&_.swiper-button-next]:opacity-100 [&_.swiper-button-next]:hover:bg-primary [&_.swiper-button-next]:after:text-lg [&_.swiper-button-next]:after:content-['next'] [&_.swiper-button-next]:right-4 [&_.swiper-button-next]:backdrop-blur-sm
-                    [&_.swiper-button-prev]:text-white [&_.swiper-button-prev]:bg-primary/80 [&_.swiper-button-prev]:w-12 [&_.swiper-button-prev]:h-12 [&_.swiper-button-prev]:rounded-full [&_.swiper-button-prev]:transition-all [&_.swiper-button-prev]:opacity-0 group-hover:[&_.swiper-button-prev]:opacity-100 [&_.swiper-button-prev]:hover:bg-primary [&_.swiper-button-prev]:after:text-lg [&_.swiper-button-prev]:after:content-['prev'] [&_.swiper-button-prev]:left-4 [&_.swiper-button-prev]:backdrop-blur-sm
-                    [&_.swiper-pagination-bullet]:w-3 [&_.swiper-pagination-bullet]:h-3 [&_.swiper-pagination-bullet]:bg-white/60 [&_.swiper-pagination-bullet]:transition-all [&_.swiper-pagination-bullet]:rounded-full [&_.swiper-pagination-bullet]:border [&_.swiper-pagination-bullet]:border-primary/20
-                    [&_.swiper-pagination-bullet-active]:bg-primary [&_.swiper-pagination-bullet-active]:border-primary [&_.swiper-pagination-bullet-active]:scale-125
-                    [&_.swiper-pagination]:bottom-6"
+                  className="h-full w-full
+                    [&_.swiper-button-next]:text-white [&_.swiper-button-next]:bg-primary/70 [&_.swiper-button-next]:w-10 [&_.swiper-button-next]:h-10 [&_.swiper-button-next]:rounded-full [&_.swiper-button-next]:transition-all [&_.swiper-button-next]:opacity-0 group-hover:[&_.swiper-button-next]:opacity-100 [&_.swiper-button-next]:hover:bg-primary [&_.swiper-button-next]:after:text-sm [&_.swiper-button-next]:after:content-['next'] [&_.swiper-button-next]:right-3 [&_.swiper-button-next]:backdrop-blur-sm
+                    [&_.swiper-button-prev]:text-white [&_.swiper-button-prev]:bg-primary/70 [&_.swiper-button-prev]:w-10 [&_.swiper-button-prev]:h-10 [&_.swiper-button-prev]:rounded-full [&_.swiper-button-prev]:transition-all [&_.swiper-button-prev]:opacity-0 group-hover:[&_.swiper-button-prev]:opacity-100 [&_.swiper-button-prev]:hover:bg-primary [&_.swiper-button-prev]:after:text-sm [&_.swiper-button-prev]:after:content-['prev'] [&_.swiper-button-prev]:left-3 [&_.swiper-button-prev]:backdrop-blur-sm
+                    [&_.swiper-pagination-bullet]:w-2.5 [&_.swiper-pagination-bullet]:h-2.5 [&_.swiper-pagination-bullet]:bg-white/60 [&_.swiper-pagination-bullet]:transition-all [&_.swiper-pagination-bullet]:rounded-full [&_.swiper-pagination-bullet]:border [&_.swiper-pagination-bullet]:border-primary/20
+                    [&_.swiper-pagination-bullet-active]:bg-secondary [&_.swiper-pagination-bullet-active]:border-secondary [&_.swiper-pagination-bullet-active]:scale-125
+                    [&_.swiper-pagination]:bottom-4"
                 >
-                  {room.images.map((image, index) => (
-                    <SwiperSlide key={index} className="relative">
+                  {room.images && room.images.length > 0 ? (
+                    room.images.map((image, index) => (
+                      <SwiperSlide key={index} className="relative">
+                        <img
+                          src={image.url || image}
+                          alt={`${room.name} - Image ${index + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://placehold.co/800x600?text=Room+Image';
+                          }}
+                        />
+                        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                        
+                        {/* Room Type Badge */}
+                        <div className="absolute top-4 right-4 bg-primary/80 text-white text-sm font-medium px-3 py-1 rounded-full backdrop-blur-sm">
+                          {room.roomType}
+                        </div>
+                        
+                        {/* Availability Badge */}
+                        <div className={`absolute top-4 left-4 ${room.isFullyBooked ? 'bg-red-500/90' : 'bg-green-500/90'} text-white text-xs font-medium px-3 py-1 rounded-full backdrop-blur-sm`}>
+                          {room.isFullyBooked ? 'Fully Booked' : `${room.availableRooms} Available`}
+                        </div>
+                      </SwiperSlide>
+                    ))
+                  ) : (
+                    <SwiperSlide>
                       <img
-                        src={image.url || image}
-                        alt={`${room.name} - Image ${index + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://placehold.co/600x400?text=Room+Image';
-                        }}
+                        src="https://placehold.co/800x600?text=No+Images+Available"
+                        alt="No room images"
+                        className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
                     </SwiperSlide>
-                  ))}
+                  )}
                 </Swiper>
               </div>
 
-              {/* Room Details */}
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-2xl font-bold text-primary">{room.name}</h2>
-                  <div className="flex items-center text-secondary">
-                    <span className="text-2xl font-bold">{formatToIDR(room.price)}</span>
-                    <span className="text-sm text-gray-500 ml-1">/night</span>
+              {/* Room Details - Layout yang lebih compact */}
+              <div className="p-6 flex-grow flex flex-col">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-xl font-bold text-primary line-clamp-1">{room.name}</h2>
+                  <div className="flex flex-col items-end text-secondary">
+                    <span className="text-xl font-bold">{formatToIDR(room.price)}</span>
+                    <span className="text-xs text-gray-500">per night</span>
                   </div>
                 </div>
 
-                <p className="text-gray-600 mb-6">{room.description}</p>
+                {/* Description dengan height terbatas */}
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3">{room.description}</p>
 
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <FaBed className="text-xl text-primary" />
-                    <span>Type: {room.roomType}</span>
+                {/* Features dengan layout yang lebih efisien */}
+                <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                  <div className="flex items-center gap-1.5 text-gray-600">
+                    <FaUsers className="text-primary" />
+                    <span>{room.capacity} persons</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <FaUsers className="text-xl text-primary" />
-                    <span>Max Capacity: {room.capacity} persons</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <MdOutlineEventAvailable 
-                      className={`text-xl ${room.availableRooms > 0 ? 'text-green-500' : 'text-red-500'}`} 
-                    />
-                    <span 
-                      className={`text-sm font-medium ${room.isFullyBooked ? 'text-red-500' : 'text-green-500'}`}
-                    >
-                      {room.isFullyBooked ? (
-                        'Fully Booked'
-                      ) : (
-                        `${room.availableRooms} rooms available`
-                      )}
-                    </span>
+                  <div className="flex items-center gap-1.5 text-gray-600">
+                    <FaBed className="text-primary" />
+                    <span>{room.roomType}</span>
                   </div>
                 </div>
 
-                {/* Amenities */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-primary mb-3">Amenities</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {room.amenities.map((amenity, index) => (
-                      <div
-                        key={index}
-                        className="px-3 py-1 bg-tertiary rounded-full text-sm text-gray-600"
-                      >
-                        {amenity}
+                {/* Amenities dengan layout lebih compact */}
+                <div className="mb-5 mt-auto">
+                  <h3 className="text-sm font-semibold text-primary mb-2">Amenities</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {room.amenities && room.amenities.length > 0 ? (
+                      room.amenities.slice(0, 6).map((amenity, index) => (
+                        <div
+                          key={index}
+                          className="px-2 py-0.5 bg-tertiary rounded-full text-xs text-gray-600"
+                        >
+                          {amenity}
+                        </div>
+                      ))
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">No amenities listed</span>
+                    )}
+                    {room.amenities && room.amenities.length > 6 && (
+                      <div className="px-2 py-0.5 bg-tertiary rounded-full text-xs text-gray-600">
+                        +{room.amenities.length - 6} more
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
 
-                {/* Book Now Button */}
-                <div className="relative">
-                  {/* Debug information - only for development */}
-                  {/* <div className="text-xs text-gray-400 mb-2">
-                    Available: {room.availableRooms || 0}, 
-                    isFullyBooked: {room.isFullyBooked ? 'true' : 'false'}
-                  </div> */}
+                {/* Book Now Button - Ditingkatkan */}
+                <button 
+                  onClick={() => {
+                    // Only navigate if room is available
+                    if (!room.isFullyBooked && room.availableRooms > 0) {
+                      const params = new URLSearchParams(window.location.search);
+                      const checkIn = params.get('checkIn');
+                      const checkOut = params.get('checkOut');
+                      const guests = params.get('guests');
+
+                      // Build URL with existing parameters
+                      const bookingUrl = `/book/${room._id}?` + 
+                        (checkIn ? `checkIn=${checkIn}&` : '') +
+                        (checkOut ? `checkOut=${checkOut}&` : '') +
+                        (guests ? `guests=${guests}` : '');
+
+                      navigate(bookingUrl);
+                    }
+                  }}
+                  disabled={room.isFullyBooked || room.availableRooms <= 0}
+                  className={`w-full py-3 rounded-lg font-medium transition-all ${(room.isFullyBooked || room.availableRooms <= 0) 
+                    ? 'bg-gray-200 cursor-not-allowed text-gray-400 hover:shadow-none' 
+                    : 'bg-secondary text-white hover:bg-secondary/90 hover:shadow-lg focus:ring-2 focus:ring-secondary/50'}`}
+                >
+                  {(room.isFullyBooked || room.availableRooms <= 0) ? 'Room Not Available' : 'Book Now'}
+                </button>
                 
-                  <button 
-                    onClick={() => {
-                      // Only navigate if room is available
-                      if (!room.isFullyBooked && room.availableRooms > 0) {
-                        const params = new URLSearchParams(window.location.search);
-                        const checkIn = params.get('checkIn');
-                        const checkOut = params.get('checkOut');
-                        const guests = params.get('guests');
-
-                        // Build URL with existing parameters
-                        const bookingUrl = `/book/${room._id}?` + 
-                          (checkIn ? `checkIn=${checkIn}&` : '') +
-                          (checkOut ? `checkOut=${checkOut}&` : '') +
-                          (guests ? `guests=${guests}` : '');
-
-                        navigate(bookingUrl);
-                      }
-                    }}
-                    disabled={room.isFullyBooked || room.availableRooms <= 0}
-                    className={`w-full py-3 rounded-lg font-semibold transition-all ${(room.isFullyBooked || room.availableRooms <= 0) 
-                      ? 'bg-gray-300 cursor-not-allowed text-gray-500 opacity-70 hover:shadow-none' 
-                      : 'bg-secondary text-white hover:bg-secondary/90 hover:shadow-lg focus:ring-2 focus:ring-offset-2 focus:ring-secondary'}`}
-                  >
-                    {(room.isFullyBooked || room.availableRooms <= 0) ? 'Not Available' : 'Book Now'}
-                  </button>
-                </div>
+                {room.isFullyBooked && (
+                  <p className="text-xs text-red-500 text-center mt-1">Currently fully booked</p>
+                )}
               </div>
             </div>
           ))}
         </div>
+        
+        {/* Tampilkan pesan jika tidak ada kamar */}
+        {rooms.length === 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <h3 className="text-xl font-bold text-primary mb-2">No Rooms Available</h3>
+            <p className="text-gray-600">Try changing your search criteria or dates.</p>
+          </div>
+        )}
       </div>
     </div>
   );
