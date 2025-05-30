@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { Link, NavLink } from "react-router-dom";
-import { FaHotel, FaBed } from "react-icons/fa";
+import { FaHotel, FaBed, FaChartLine, FaCalendarCheck } from "react-icons/fa";
 import { BiLogOut } from "react-icons/bi";
 
 const Sidebar = ({setToken}) => {
@@ -10,43 +10,80 @@ const Sidebar = ({setToken}) => {
   };
 
   return (
-    <div className="max-sm:flexCenter max-sm:pb-3 rounded bg-white pb-3 sm:w-1/5 sm:min-h-screen">
-      <div className="flex flex-col gap-y-6 max-sm:items-center sm:flex-col pt-4 sm:pt-14">
+    <div className="max-sm:flexCenter max-sm:pb-3 sm:w-1/5 sm:min-h-screen bg-tertiary text-primary shadow-lg">
+      <div className="flex flex-col gap-y-6 max-sm:items-center sm:flex-col pt-4 sm:pt-10 w-full">
         {/* LOGO */}
-        <Link to={"/"} className="bold-22 xl:bold-32 sm:pl-2 lg:pl-12">
-          WG Hotel Admin
-        </Link>
+        <div className="flex items-center justify-center sm:justify-start sm:pl-6 lg:pl-8 py-4 border-b border-gray-700 w-full">
+          <FaHotel className="text-secondary text-2xl mr-3" />
+          <Link to={"/"} className="text-xl font-bold tracking-wide">
+            <span className="text-secondary">WG</span> Hotel Admin
+          </Link>
+        </div>
+        
         {/* LINKS */}
-        <div className="flex sm:flex-col gap-x-5 gap-y-8 sm:pt-10">
+        <div className="flex sm:flex-col gap-x-5 gap-y-3 sm:pt-6 w-full px-2">
           <NavLink
             to={"/"}
             className={({ isActive }) =>
               isActive
-                ? "active-link"
-                : "flexStart gap-x-2 sm:pl-12 p-5 medium-15 cursor-pointer h-10 rounded-xl"
+                ? "flex items-center gap-x-3 px-4 py-3 bg-secondary/20 text-secondary rounded-lg font-medium transition-all duration-200 w-full"
+                : "flex items-center gap-x-3 px-4 py-3 hover:bg-white/10 rounded-lg font-medium transition-all duration-200 w-full"
             }
           >
-            <FaHotel />
-            <div className="hidden lg:flex">Add Room</div>
+            <FaHotel className="text-lg" />
+            <span className="hidden lg:block">Add Room</span>
           </NavLink>
+          
           <NavLink
             to={"/rooms"}
             className={({ isActive }) =>
               isActive
-                ? "active-link"
-                : "flexStart gap-x-2 sm:pl-12 p-5 medium-15 cursor-pointer h-10 rounded-xl"
+                ? "flex items-center gap-x-3 px-4 py-3 bg-secondary/20 text-secondary rounded-lg font-medium transition-all duration-200 w-full"
+                : "flex items-center gap-x-3 px-4 py-3 hover:bg-white/10 rounded-lg font-medium transition-all duration-200 w-full"
             }
           >
-            <FaBed />
-            <div className="hidden lg:flex">Manage Rooms</div>
+            <FaBed className="text-lg" />
+            <span className="hidden lg:block">Manage Rooms</span>
           </NavLink>
+
+          <NavLink
+            to={"/bookings"}
+            className={({ isActive }) =>
+              isActive
+                ? "flex items-center gap-x-3 px-4 py-3 bg-secondary/20 text-secondary rounded-lg font-medium transition-all duration-200 w-full"
+                : "flex items-center gap-x-3 px-4 py-3 hover:bg-white/10 rounded-lg font-medium transition-all duration-200 w-full"
+            }
+          >
+            <FaCalendarCheck className="text-lg" />
+            <span className="hidden lg:block">Bookings</span>
+          </NavLink>
+
+          <NavLink
+            to={"/list"}
+            className={({ isActive }) =>
+              isActive
+                ? "flex items-center gap-x-3 px-4 py-3 bg-secondary/20 text-secondary rounded-lg font-medium transition-all duration-200 w-full"
+                : "flex items-center gap-x-3 px-4 py-3 hover:bg-white/10 rounded-lg font-medium transition-all duration-200 w-full"
+            }
+          >
+            <FaChartLine className="text-lg" />
+            <span className="hidden lg:block">Statistics</span>
+          </NavLink>
+          
+          <div className="border-t border-gray-700 my-4 w-full"></div>
+          
           <button
             onClick={handleLogout}
-            className="flexStart gap-x-2 sm:pl-12 p-5 medium-15 cursor-pointer h-10 rounded-xl text-red-600 hover:text-red-700"
+            className="flex items-center gap-x-3 px-4 py-3 text-primary rounded-lg font-medium transition-all duration-200 w-full mt-auto"
           >
-            <BiLogOut />
-            <div className="hidden lg:flex">Logout</div>
+            <BiLogOut className="text-lg" />
+            <span className="hidden lg:block">Logout</span>
           </button>
+        </div>
+        
+        <div className="mt-auto px-4 py-6 text-xs text-gray-400 hidden sm:block">
+          <p>© 2025 WG Hotel Admin</p>
+          <p>Version 1.0.0</p>
         </div>
       </div>
     </div>

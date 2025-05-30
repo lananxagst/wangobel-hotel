@@ -6,6 +6,7 @@ import { Route, Routes } from "react-router-dom";
 import RoomManagement from "./pages/RoomManagement";
 import Add from "./pages/Add";
 import List from "./pages/List";
+import BookingList from "./pages/BookingList";
 
 export default function App() {
   const [token, setToken] = useState(() => {
@@ -23,13 +24,14 @@ export default function App() {
       {token === "" ? (
         <Login setToken={setToken} />
       ) : (
-        <div className="bg-primary text-[#404040]">
+        <div className="bg-tertiary text-primary">
           <div className="mx-auto max-w-[1440px] flex flex-col sm:flex-row">
             <Sidebar setToken={setToken}/>
             <Routes>
               <Route path="/" element={<Add token={token}/>} />
               <Route path="/list" element={<List token={token}/>} />
               <Route path="/rooms" element={<RoomManagement token={token} />} />
+              <Route path="/bookings" element={<BookingList token={token} />} />
             </Routes>
           </div>
         </div>

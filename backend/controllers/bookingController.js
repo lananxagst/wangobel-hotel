@@ -4,16 +4,34 @@ import Room from '../models/roomModel.js';
 // Get all bookings
 export const getAllBookings = async (req, res) => {
     try {
-        const bookings = await Booking.find()
-            .sort({ createdAt: -1 })
-            .populate('room', 'name roomType price')
-            .populate('user', 'name email');
+        console.log('getAllBookings: Attempting to fetch all bookings');
+        
+        // Get all bookings without populate first to see if basic query works
+        const rawBookings = await Booking.find().sort({ createdAt: -1 });
+        console.log(`getAllBookings: Found ${rawBookings.length} bookings in database`);
+        
+        // Now try to populate with error handling for each booking
+        let bookings = [];
+        try {
+            bookings = await Booking.find()
+                .sort({ createdAt: -1 })
+                .populate('room', 'name roomType price')
+                .populate('user', 'name email');
+                
+            console.log('getAllBookings: Successfully populated bookings with room and user data');
+        } catch (populateError) {
+            console.error('getAllBookings: Error during populate:', populateError);
+            // Fallback to raw bookings if populate fails
+            bookings = rawBookings;
+        }
 
+        // Return the bookings array in a standardized format
         res.status(200).json({
             success: true,
-            bookings
+            bookings: bookings || [] // Ensure we always return an array
         });
     } catch (error) {
+        console.error('getAllBookings error:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching bookings',

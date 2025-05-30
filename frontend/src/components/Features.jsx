@@ -25,7 +25,7 @@ const Features = () => {
     },
     {
       icon: <FaDumbbell />,
-      title: "Fitness Center",
+      title: "Cleaning Services",
       description: "Modern gym equipment and personal trainers"
     },
     {
