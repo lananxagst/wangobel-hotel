@@ -24,9 +24,11 @@ export const protect = async (req, res, next) => {
     }
 };
 
-// Admin middleware
+// Admin middleware - simplified to only check against admin email in .env
 export const admin = (req, res, next) => {
-    if (req.user && req.user.isAdmin) {
+    // Check if the user's email matches the admin email in .env
+    // This is the ONLY condition for admin access
+    if (req.user && req.user.email === process.env.ADMIN_EMAIL) {
         next();
     } else {
         res.status(401).json({ message: 'Not authorized as admin' });

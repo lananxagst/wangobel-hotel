@@ -5,7 +5,8 @@ import Sidebar from "./components/Sidebar";
 import { Route, Routes } from "react-router-dom";
 import RoomManagement from "./pages/RoomManagement";
 import Add from "./pages/Add";
-import List from "./pages/List";
+import Statistics from "./pages/Statistics";
+import BookingList from "./pages/BookingList";
 
 export default function App() {
   const [token, setToken] = useState(() => {
@@ -23,14 +24,22 @@ export default function App() {
       {token === "" ? (
         <Login setToken={setToken} />
       ) : (
-        <div className="bg-primary text-[#404040]">
-          <div className="mx-auto max-w-[1440px] flex flex-col sm:flex-row">
+        <div className="bg-tertiary text-primary min-h-screen flex flex-col sm:flex-row">
+          {/* Sidebar - sticky hanya untuk desktop, horizontal di mobile */}
+          <div className="sm:sticky sm:top-0 sm:h-screen overflow-hidden z-10 max-sm:static max-sm:w-full">
             <Sidebar setToken={setToken}/>
-            <Routes>
-              <Route path="/" element={<Add token={token}/>} />
-              <Route path="/list" element={<List token={token}/>} />
-              <Route path="/rooms" element={<RoomManagement token={token} />} />
-            </Routes>
+          </div>
+          
+          {/* Main content - dengan scrollbar */}
+          <div className="flex-1 overflow-y-auto max-h-screen max-sm:h-[calc(100vh-65px)] max-sm:pt-2">
+            <div className="w-full max-w-[1440px] px-2 sm:px-6 pb-8">
+              <Routes>
+                <Route path="/" element={<Add token={token}/>} />
+                <Route path="/list" element={<Statistics token={token}/>} />
+                <Route path="/rooms" element={<RoomManagement token={token} />} />
+                <Route path="/bookings" element={<BookingList token={token} />} />
+              </Routes>
+            </div>
           </div>
         </div>
       )}

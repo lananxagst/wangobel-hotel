@@ -9,7 +9,8 @@ import {
     getBookingDetails,
     handleCashPayment
 } from '../controllers/bookingController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect } from '../middleware/authMiddleware.js';
+import adminAuth from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.patch('/:id/cancel', protect, cancelBooking);
 router.post('/:bookingId/payment', protect, handleCashPayment);
 
 // Admin routes
-router.get('/', protect, admin, getAllBookings);
-router.patch('/:id/status', protect, admin, updateBookingStatus);
+router.get('/', adminAuth, getAllBookings);
+router.patch('/:id/status', adminAuth, updateBookingStatus);
 
 export default router;

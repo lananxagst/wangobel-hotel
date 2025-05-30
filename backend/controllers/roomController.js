@@ -276,6 +276,7 @@ export const createRoom = async (req, res) => {
 // Update room (admin only)
 export const updateRoom = async (req, res) => {
     try {
+        console.log('Updating room with data:', req.body);
         const room = await Room.findById(req.params.id);
         if (room) {
             room.name = req.body.name || room.name;
@@ -287,7 +288,9 @@ export const updateRoom = async (req, res) => {
             room.isAvailable = req.body.isAvailable ?? room.isAvailable;
             room.featured = req.body.featured ?? room.featured;
 
+            // CARA 1: Pembaruan gambar melalui file uploads (multipart/form-data)
             if (req.files && req.files.length > 0) {
+                console.log('Updating images via file uploads');
                 // Delete old images from cloudinary
                 for (const image of room.images) {
                     await cloudinary.uploader.destroy(image.public_id);
@@ -303,6 +306,38 @@ export const updateRoom = async (req, res) => {
                     });
                 }
                 room.images = images;
+            }
+            // CARA 2: Pembaruan gambar melalui URL JSON (yang kita gunakan sekarang)
+            else if (req.body.imagesUpdated === true || req.body.clearImages === true) {
+                console.log('Updating images via URL JSON');
+
+                // Jika flag clearImages diset, hapus semua gambar
+                if (req.body.clearImages === true) {
+                    console.log('Clearing all images as requested');
+                    room.images = [];
+                } else {
+                    // Cari semua kunci yang berformat 'image1', 'image2', dll.
+                    const imageKeys = Object.keys(req.body).filter(key => key.startsWith('image') && !isNaN(key.substring(5)));
+                    console.log('Found image keys in request:', imageKeys);
+                    
+                    if (imageKeys.length > 0) {
+                        // Konversi format dari {image1: url1, image2: url2} ke [{public_id, url}]
+                        const newImages = imageKeys.map(key => {
+                            // Buat public_id dari timestamp jika tidak ada
+                            const publicId = `room_image_${Date.now()}_${key}`;
+                            return {
+                                public_id: publicId,
+                                url: req.body[key]
+                            };
+                        });
+                        
+                        console.log('New images array:', newImages);
+                        room.images = newImages;
+                    } else {
+                        console.log('No image keys found in request, but imagesUpdated is true. Clearing images.');
+                        room.images = [];
+                    }
+                }
             }
 
             const updatedRoom = await room.save();
