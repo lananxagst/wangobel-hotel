@@ -226,6 +226,13 @@ export const createBooking = async (req, res) => {
         // Log booking data untuk debugging
         console.log('Creating booking with data:', JSON.stringify(bookingData, null, 2));
         
+        // Log khusus untuk special requests
+        if (bookingData.specialRequests) {
+            console.log('Special Requests detected:', bookingData.specialRequests);
+        } else {
+            console.log('No Special Requests included in booking');
+        }
+        
         const booking = await Booking.create(bookingData);
 
         res.status(201).json({

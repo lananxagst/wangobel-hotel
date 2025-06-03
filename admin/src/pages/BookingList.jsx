@@ -768,15 +768,17 @@ const BookingList = ({ token }) => {
                 </div>
               </div>
               
-              {/* Special Requests */}
-              {selectedBooking.specialRequests && (
-                <div className="mb-6">
-                  <h4 className="text-lg font-semibold mb-2 text-primary">Special Requests</h4>
-                  <div className="bg-tertiary p-3 rounded-md">
+              {/* Special Requests - selalu tampilkan bagian ini */}
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold mb-2 text-primary">Special Requests</h4>
+                <div className="bg-tertiary p-3 rounded-md">
+                  {selectedBooking.specialRequests ? (
                     <p>{selectedBooking.specialRequests}</p>
-                  </div>
+                  ) : (
+                    <p className="text-gray-500 italic">No special requests</p>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
             
             {/* Modal Footer */}
