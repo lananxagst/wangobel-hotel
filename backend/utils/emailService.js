@@ -245,8 +245,8 @@ const sendNewsletter = async (subscribers, newsletterData) => {
               <p>© ${new Date().getFullYear()} WG Hotel. All rights reserved.</p>
               <p>You're receiving this email because you signed up for updates from WG Hotel.</p>
               <p>
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/unsubscribe?email={{RECIPIENT}}" style="color: #1F2937; text-decoration: underline;">Unsubscribe</a> | 
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" style="color: #1F2937; text-decoration: underline;">Visit Website</a>
+                <a href="${process.env.FRONTEND_URL || 'http://wangobel-hotel.vercel.app'}/unsubscribe?email={{RECIPIENT}}" style="color: #1F2937; text-decoration: underline;">Unsubscribe</a> | 
+                <a href="${process.env.FRONTEND_URL || 'http://wangobel-hotel.vercel.app'}" style="color: #1F2937; text-decoration: underline;">Visit Website</a>
               </p>
               <p style="margin-top: 15px; font-size: 11px; color: #9CA3AF;">
                 WG Hotel, Jl. Raya Songnipi No.16 Ungasan, Kuta Selatan, Badung, Bali, Indonesia

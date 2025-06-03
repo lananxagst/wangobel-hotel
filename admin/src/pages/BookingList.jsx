@@ -530,14 +530,16 @@ const BookingList = ({ token }) => {
                           >
                             {hasBooking ? (
                               <div 
-                                className={`rounded-md border-2 p-2 ${getStatusClass(booking.status || 'confirmed')} ${getPaymentBorderClass(booking)} cursor-pointer hover:shadow-md transition-shadow`}
+                                className={`rounded-md border-2 p-2 ${getStatusClass(booking.status || 'confirmed')} ${getPaymentBorderClass(booking)} cursor-pointer hover:shadow-md transition-shadow h-[100px] w-full flex flex-col justify-between`}
                                 onClick={() => {
                                   setSelectedBooking(booking);
                                   setShowBookingModal(true);
                                 }}
                               >
-                                <div className="font-medium text-sm">{booking.guestName}</div>
-                                <div className="text-xs">BID: {booking.bookingId}</div>
+                                <div>
+                                  <div className="font-medium text-sm line-clamp-1">{booking.guestName}</div>
+                                  <div className="text-xs">BID: {booking.bookingId}</div>
+                                </div>
                                 <div className="flex items-center text-xs mt-1">
                                   {getPaymentStatusIcon(booking)}
                                   <span>{getPaymentStatusText(booking)}</span>
@@ -614,7 +616,7 @@ const BookingList = ({ token }) => {
                         >
                           {hasBooking ? (
                             <div 
-                              className={`rounded-md border-2 p-1 ${getStatusClass(booking.status)} ${getPaymentBorderClass(booking)} cursor-pointer hover:shadow-md transition-shadow`}
+                              className={`rounded-md border-2 p-1 ${getStatusClass(booking.status)} ${getPaymentBorderClass(booking)} cursor-pointer hover:shadow-md transition-shadow h-[60px] w-full flex flex-col justify-between`}
                               onClick={() => {
                                 setSelectedBooking(booking);
                                 setShowBookingModal(true);
@@ -652,7 +654,7 @@ const BookingList = ({ token }) => {
                 <span className="text-[10px] sm:text-xs">Paid</span>
               </div>
               <div className="flex items-center">
-                <FaMoneyBill className="text-green-600 mr-1 text-xs sm:text-sm" />
+                <FaMoneyBill className="text-yellow-600 mr-1 text-xs sm:text-sm" />
                 <span className="text-[10px] sm:text-xs">Pay Cash at Hotel</span>
               </div>
             </div>

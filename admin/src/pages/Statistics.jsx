@@ -416,11 +416,11 @@ const Statistics = ({ token }) => {
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis yAxisId="left" orientation="left" stroke={colors.primary} />
+                <YAxis yAxisId="left" orientation="left" stroke={colors.confirmed} />
                 <YAxis yAxisId="right" orientation="right" stroke={colors.secondary} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Bar yAxisId="left" dataKey="revenue" name="Revenue (IDR)" fill={colors.primary} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="revenue" name="Revenue (IDR)" fill={colors.confirmed} radius={[4, 4, 0, 0]} />
                 <Bar yAxisId="right" dataKey="bookings" name="Bookings" fill={colors.secondary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -497,7 +497,7 @@ const Statistics = ({ token }) => {
                 <YAxis dataKey="name" type="category" width={100} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Bar dataKey="rooms" name="Total Rooms" fill={colors.primary} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="rooms" name="Total Rooms" fill={colors.success} radius={[0, 4, 4, 0]} />
                 <Bar dataKey="bookings" name="Bookings" fill={colors.secondary} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -566,8 +566,8 @@ const Statistics = ({ token }) => {
             >
               <defs>
                 <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={colors.primary} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={colors.primary} stopOpacity={0.1}/>
+                  <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor={colors.secondary} stopOpacity={0.1}/>
                 </linearGradient>
                 <linearGradient id="colorConfirmed" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={colors.confirmed} stopOpacity={0.8}/>
@@ -583,7 +583,7 @@ const Statistics = ({ token }) => {
               <YAxis />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Area type="monotone" dataKey="bookings" name="Total Bookings" stroke={colors.primary} fillOpacity={1} fill="url(#colorBookings)" />
+              <Area type="monotone" dataKey="bookings" name="Total Bookings" stroke={colors.secondary} fillOpacity={1} fill="url(#colorBookings)" />
               <Area type="monotone" dataKey="confirmed" name="Confirmed" stroke={colors.confirmed} fillOpacity={1} fill="url(#colorConfirmed)" />
               <Area type="monotone" dataKey="cancelled" name="Cancelled" stroke={colors.cancelled} fillOpacity={1} fill="url(#colorCancelled)" />
             </AreaChart>
