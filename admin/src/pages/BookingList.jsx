@@ -121,12 +121,46 @@ const BookingList = ({ token }) => {
   const getStatusClass = (status) => {
     switch(status) {
       case 'confirmed': return 'bg-yellow-100 border-yellow-400 text-yellow-800';
-      case 'checked_in': return 'bg-green-100 border-green-400 text-green-800';
-      case 'checked_out': return 'bg-gray-100 border-gray-400 text-gray-800';
       case 'cancelled': return 'bg-red-100 border-red-400 text-red-800';
-      case 'pending': return 'bg-blue-100 border-blue-400 text-blue-800';
       default: return 'bg-gray-100 border-gray-400 text-gray-800';
     }
+  };
+  
+  // Fungsi untuk menentukan warna background berdasarkan metode pembayaran
+  const getPaymentBackgroundClass = (booking) => {
+    if (!booking || booking.status === 'cancelled') {
+      return 'bg-red-50'; // Tidak mengubah background untuk booking yang dibatalkan
+    }
+    
+    // Cek metode pembayaran
+    if (booking.paymentDetails?.method === 'cash') {
+      return 'bg-yellow-50'; // Background subtle kuning untuk container cell
+    } else if (booking.status === 'confirmed') {
+      return 'bg-green-50'; // Background subtle hijau untuk container cell
+    }
+    
+    return 'bg-gray-50'; // Default background subtle
+  };
+  
+  // Fungsi untuk menentukan warna border card berdasarkan metode pembayaran
+  const getPaymentBorderClass = (booking) => {
+    if (!booking) return '';
+    
+    // Jika booking dibatalkan, gunakan border merah
+    if (booking.status === 'cancelled') {
+      return 'border-red-400';
+    }
+    
+    // Cek metode pembayaran untuk booking yang confirmed
+    if (booking.status === 'confirmed') {
+      if (booking.paymentDetails?.method === 'cash') {
+        return 'border-yellow-600'; // Border kuning untuk pembayaran cash
+      } else {
+        return 'border-green-600'; // Border hijau untuk pembayaran midtrans/paid
+      }
+    }
+    
+    return ''; // Default tidak ada border khusus
   };
   
   const getPaymentStatusText = (booking) => {
@@ -152,7 +186,7 @@ const BookingList = ({ token }) => {
     
     if (booking.status === 'confirmed') {
       if (booking.paymentDetails?.method === 'cash') {
-        return <FaMoneyBill className="mr-1 text-green-600" />;
+        return <FaMoneyBill className="mr-1 text-yellow-600" />;
       }
       return <FaCreditCard className="mr-1 text-green-600" />;
     }
@@ -492,11 +526,11 @@ const BookingList = ({ token }) => {
                         return (
                           <div 
                             key={dayIndex} 
-                            className={`p-2 border-r ${hasBooking ? 'bg-yellow-50' : ''}`}
+                            className={`p-2 border-r ${hasBooking ? getPaymentBackgroundClass(booking) || 'bg-gray-50' : ''}`}
                           >
                             {hasBooking ? (
                               <div 
-                                className={`rounded-md border p-2 ${getStatusClass(booking.status || 'confirmed')} cursor-pointer hover:shadow-md transition-shadow`}
+                                className={`rounded-md border-2 p-2 ${getStatusClass(booking.status || 'confirmed')} ${getPaymentBorderClass(booking)} cursor-pointer hover:shadow-md transition-shadow`}
                                 onClick={() => {
                                   setSelectedBooking(booking);
                                   setShowBookingModal(true);
@@ -576,10 +610,16 @@ const BookingList = ({ token }) => {
                       return (
                         <div 
                           key={dayIndex} 
-                          className={`p-1 border-r ${hasBooking ? 'bg-yellow-50' : ''}`}
+                          className={`p-1 border-r ${hasBooking ? getPaymentBackgroundClass(booking) || 'bg-gray-50' : ''}`}
                         >
                           {hasBooking ? (
-                            <div className={`rounded-md border p-1 ${getStatusClass(booking.status)}`}>
+                            <div 
+                              className={`rounded-md border-2 p-1 ${getStatusClass(booking.status)} ${getPaymentBorderClass(booking)} cursor-pointer hover:shadow-md transition-shadow`}
+                              onClick={() => {
+                                setSelectedBooking(booking);
+                                setShowBookingModal(true);
+                              }}
+                            >
                               <div className="font-medium text-xs truncate">{booking.guestName}</div>
                               <div className="flex items-center text-[10px] mt-0.5 truncate">
                                 {getPaymentStatusIcon(booking)}
@@ -776,7 +816,7 @@ const BookingList = ({ token }) => {
                       className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-800"
                       disabled={cancelLoading}
                     >
-                      No, Keep it
+                      No!
                     </button>
                     <button
                       onClick={() => cancelBooking(selectedBooking._id)}
@@ -789,7 +829,7 @@ const BookingList = ({ token }) => {
                           Processing...
                         </>
                       ) : (
-                        'Yes, Cancel Booking'
+                        'Yes!'
                       )}
                     </button>
                   </div>

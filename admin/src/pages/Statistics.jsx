@@ -386,7 +386,7 @@ const Statistics = ({ token }) => {
           value={formatToIDR(totalRevenue)} 
           icon={<FaMoneyBillWave size={20} />}
           color={colors.success}
-          subtext="From all bookings"
+          subtext="From all confirmed bookings"
         />
         <StatCard 
           title="Room Types" 
