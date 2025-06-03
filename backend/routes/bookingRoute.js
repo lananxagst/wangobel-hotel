@@ -25,5 +25,6 @@ router.post('/:bookingId/payment', protect, handleCashPayment);
 // Admin routes
 router.get('/', adminAuth, getAllBookings);
 router.patch('/:id/status', adminAuth, updateBookingStatus);
+router.put('/:id/cancel', adminAuth, cancelBooking);
 
 export default router;

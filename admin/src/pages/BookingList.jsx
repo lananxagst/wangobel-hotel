@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { format, addDays, isSameDay, parseISO } from 'date-fns';
-import { FaCalendarAlt, FaExclamationCircle, FaCreditCard, FaMoneyBill } from 'react-icons/fa';
+import { format, addDays, isSameDay, parseISO, differenceInDays } from 'date-fns';
+import { FaCalendarAlt, FaExclamationCircle, FaCreditCard, FaMoneyBill, FaTrash, FaTimes, FaUser, FaEnvelope, FaPhone, FaBed, FaCalendarCheck, FaCalendarTimes } from 'react-icons/fa';
 
 const backend_url = import.meta.env.VITE_BACKEND_URL;
 
@@ -13,6 +13,10 @@ const BookingList = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [currentWeekStart, setCurrentWeekStart] = useState(new Date());
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 640);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   
   // Generate array of 7 days for desktop view
   const weekDays = useMemo(() => {
@@ -64,6 +68,37 @@ const BookingList = ({ token }) => {
       setLoading(false);
     }
   }, [token]);
+  
+  // Function to cancel booking
+  const cancelBooking = async (bookingId) => {
+    if (!bookingId) return;
+    
+    try {
+      setCancelLoading(true);
+      
+      const response = await axios.put(
+        `${backend_url}/api/bookings/${bookingId}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` }}
+      );
+      
+      if (response.data.success) {
+        toast.success('Booking cancelled successfully');
+        // Close the modal and refresh bookings
+        setShowBookingModal(false);
+        setSelectedBooking(null);
+        setConfirmCancel(false);
+        fetchBookings();
+      } else {
+        toast.error('Failed to cancel booking: ' + response.data.message);
+      }
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      toast.error('Error cancelling booking: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setCancelLoading(false);
+    }
+  };  
   
   const fetchRooms = useCallback(async () => {
     try {
@@ -460,7 +495,13 @@ const BookingList = ({ token }) => {
                             className={`p-2 border-r ${hasBooking ? 'bg-yellow-50' : ''}`}
                           >
                             {hasBooking ? (
-                              <div className={`rounded-md border p-2 ${getStatusClass(booking.status || 'confirmed')}`}>
+                              <div 
+                                className={`rounded-md border p-2 ${getStatusClass(booking.status || 'confirmed')} cursor-pointer hover:shadow-md transition-shadow`}
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setShowBookingModal(true);
+                                }}
+                              >
                                 <div className="font-medium text-sm">{booking.guestName}</div>
                                 <div className="text-xs">BID: {booking.bookingId}</div>
                                 <div className="flex items-center text-xs mt-1">
@@ -538,7 +579,7 @@ const BookingList = ({ token }) => {
                           className={`p-1 border-r ${hasBooking ? 'bg-yellow-50' : ''}`}
                         >
                           {hasBooking ? (
-                            <div className={`rounded-md border p-1 ${getStatusClass(booking.status || 'confirmed')}`}>
+                            <div className={`rounded-md border p-1 ${getStatusClass(booking.status)}`}>
                               <div className="font-medium text-xs truncate">{booking.guestName}</div>
                               <div className="flex items-center text-[10px] mt-0.5 truncate">
                                 {getPaymentStatusIcon(booking)}
@@ -578,6 +619,186 @@ const BookingList = ({ token }) => {
           </div>
         </div>
       </div>
+      
+      {/* Booking Details Modal */}
+      {showBookingModal && selectedBooking && (
+        <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-primary">Booking Details</h3>
+              <button 
+                onClick={() => {
+                  setShowBookingModal(false);
+                  setSelectedBooking(null);
+                  setConfirmCancel(false);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6">
+              {/* Booking Status Banner */}
+              <div className={`mb-4 p-3 rounded-md ${getStatusClass(selectedBooking.status)}`}>
+                <div className="flex justify-between items-center">
+                  <div className="font-semibold">Status: {selectedBooking.status.replace('_', ' ').toUpperCase()}</div>
+                  <div>{getPaymentStatusText(selectedBooking)}</div>
+                </div>
+              </div>
+              
+              {/* Booking Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-primary">Guest Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <FaUser className="text-secondary mr-2" />
+                      <span className="font-medium">Name:</span>
+                      <span className="ml-2">{selectedBooking.guestName}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaEnvelope className="text-secondary mr-2" />
+                      <span className="font-medium">Email:</span>
+                      <span className="ml-2">{selectedBooking.guestEmail}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaPhone className="text-secondary mr-2" />
+                      <span className="font-medium">Phone:</span>
+                      <span className="ml-2">{selectedBooking.guestPhone}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-lg font-semibold mb-2 text-primary">Room Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <FaBed className="text-secondary mr-2" />
+                      <span className="font-medium">Room Type:</span>
+                      <span className="ml-2">{selectedBooking.roomType}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaCalendarCheck className="text-secondary mr-2" />
+                      <span className="font-medium">Check-in:</span>
+                      <span className="ml-2">{format(new Date(selectedBooking.checkIn), 'dd MMM yyyy')}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaCalendarTimes className="text-secondary mr-2" />
+                      <span className="font-medium">Check-out:</span>
+                      <span className="ml-2">{format(new Date(selectedBooking.checkOut), 'dd MMM yyyy')}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaCalendarAlt className="text-secondary mr-2" />
+                      <span className="font-medium">Duration:</span>
+                      <span className="ml-2">
+                        {differenceInDays(new Date(selectedBooking.checkOut), new Date(selectedBooking.checkIn))} nights
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Payment Information */}
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold mb-2 text-primary">Payment Information</h4>
+                <div className="bg-tertiary p-3 rounded-md">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="font-medium">Amount:</span>
+                      <span className="ml-2">IDR {selectedBooking.totalAmount}K</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Method:</span>
+                      <span className="ml-2">{selectedBooking.paymentDetails?.method || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Booking ID:</span>
+                      <span className="ml-2">{selectedBooking.bookingId}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Created:</span>
+                      <span className="ml-2">
+                        {selectedBooking.createdAt ? format(new Date(selectedBooking.createdAt), 'dd MMM yyyy') : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Special Requests */}
+              {selectedBooking.specialRequests && (
+                <div className="mb-6">
+                  <h4 className="text-lg font-semibold mb-2 text-primary">Special Requests</h4>
+                  <div className="bg-tertiary p-3 rounded-md">
+                    <p>{selectedBooking.specialRequests}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
+              {!confirmCancel ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowBookingModal(false);
+                      setSelectedBooking(null);
+                    }}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-800"
+                  >
+                    Close
+                  </button>
+                  
+                  {/* Only show cancel button for pending/confirmed bookings */}
+                  {['pending', 'confirmed'].includes(selectedBooking.status) && (
+                    <button
+                      onClick={() => setConfirmCancel(true)}
+                      className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-md text-white flex items-center"
+                    >
+                      <FaTrash className="mr-2" />
+                      Cancel Booking
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="text-gray-600 flex items-center">
+                    <FaExclamationCircle className="text-red-500 mr-2" />
+                    Are you sure you want to cancel this booking?
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setConfirmCancel(false)}
+                      className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-800"
+                      disabled={cancelLoading}
+                    >
+                      No, Keep it
+                    </button>
+                    <button
+                      onClick={() => cancelBooking(selectedBooking._id)}
+                      className={`px-4 py-2 bg-red-500 hover:bg-red-600 rounded-md text-white flex items-center ${cancelLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                      disabled={cancelLoading}
+                    >
+                      {cancelLoading ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 rounded-full border-2 border-t-transparent border-white animate-spin"></span>
+                          Processing...
+                        </>
+                      ) : (
+                        'Yes, Cancel Booking'
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

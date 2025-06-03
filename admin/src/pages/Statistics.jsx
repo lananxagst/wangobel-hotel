@@ -37,7 +37,7 @@ const Statistics = ({ token }) => {
     warning: '#f59e0b',
     info: '#3b82f6',
     pending: '#6366f1',
-    confirmed: '#f59e0b',
+    confirmed: '#10b981',
     checkedIn: '#10b981',
     checkedOut: '#6b7280',
     cancelled: '#ef4444'
@@ -193,14 +193,20 @@ const Statistics = ({ token }) => {
     const roomTypeCount = {};
     const roomTypeBookings = {};
     
-    // Count total of each room type
+    // Inisialisasi perhitungan
     rooms.forEach(room => {
       if (!roomTypeCount[room.roomType]) {
         roomTypeCount[room.roomType] = 0;
         roomTypeBookings[room.roomType] = 0;
       }
-      roomTypeCount[room.roomType]++;
+      
+      // Menggunakan nilai totalRooms dari setiap kamar (default 5 jika tidak ada)
+      roomTypeCount[room.roomType] += (room.totalRooms || 5);
     });
+    
+    // Log untuk debugging
+    console.log('Room Type Distribution:');
+    console.log('Total rooms by type:', roomTypeCount);
     
     // Count bookings for each room type
     bookings.forEach(booking => {
@@ -365,7 +371,7 @@ const Statistics = ({ token }) => {
           title="Total Bookings" 
           value={bookings.length} 
           icon={<FaChartBar size={20} />}
-          color={colors.primary}
+          color={colors.secondary}
           subtext="All time bookings"
         />
         <StatCard 
