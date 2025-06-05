@@ -448,9 +448,9 @@ const Statistics = ({ token }) => {
                     if (percent < 0.01) return null;
                     
                     // Adjust position based on angle
-                    const radius = 135; // slightly outside the pie
-                    const sin = Math.sin(-midAngle * Math.PI / 180);
-                    const cos = Math.cos(-midAngle * Math.PI / 180);
+                    const radius = 120; // slightly outside the pie
+                    const sin = Math.sin(-midAngle * Math.PI / 225);
+                    const cos = Math.cos(-midAngle * Math.PI / 225);
                     const labelX = x + (radius * sin);
                     const labelY = y + (radius * cos);
                     
@@ -458,7 +458,7 @@ const Statistics = ({ token }) => {
                       <text 
                         x={labelX} 
                         y={labelY} 
-                        fill={colors.success}
+                        fill={colors.primary}
                         textAnchor={midAngle > 0 ? 'start' : 'end'}
                         dominantBaseline="central"
                         fontWeight="500"
@@ -523,9 +523,9 @@ const Statistics = ({ token }) => {
                     if (percent < 0.01) return null;
                     
                     // Adjust position based on angle
-                    const radius = 135; // slightly outside the pie
-                    const sin = Math.sin(-midAngle * Math.PI / 180);
-                    const cos = Math.cos(-midAngle * Math.PI / 180);
+                    const radius = 120; // slightly outside the pie
+                    const sin = Math.sin(-midAngle * Math.PI / 225);
+                    const cos = Math.cos(-midAngle * Math.PI / 200);
                     const labelX = x + (radius * sin);
                     const labelY = y + (radius * cos);
                     
