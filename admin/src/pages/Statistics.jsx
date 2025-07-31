@@ -10,6 +10,17 @@ import {
 import { backend_url } from '../constants';
 import { FaChartBar, FaChartPie, FaCalendarAlt, FaMoneyBillWave } from 'react-icons/fa';
 
+/**
+ * Format price to IDR with K suffix
+ * @param {number} amount - Amount in thousands (e.g., 150 for 150K)
+ * @returns {string} Formatted string (e.g., "IDR 150K")
+ */
+const formatToIDR = (amount) => {
+  // Nilai amount sudah dalam ribuan dari database
+  // Jika nilai tidak valid, tampilkan 0
+  return `IDR ${amount || 0}K`;
+};
+
 const Statistics = ({ token }) => {
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -26,7 +37,7 @@ const Statistics = ({ token }) => {
     warning: '#f59e0b',
     info: '#3b82f6',
     pending: '#6366f1',
-    confirmed: '#f59e0b',
+    confirmed: '#10b981',
     checkedIn: '#10b981',
     checkedOut: '#6b7280',
     cancelled: '#ef4444'
@@ -110,9 +121,35 @@ const Statistics = ({ token }) => {
   
   // 2. Total Revenue
   const totalRevenue = useMemo(() => {
-    return bookings
-      .filter(booking => booking.status !== 'cancelled')
-      .reduce((sum, booking) => sum + (booking.totalAmount || 0), 0);
+    // Filter bookings yang tidak cancelled
+    const validBookings = bookings.filter(booking => booking.status !== 'cancelled');
+    
+    // Log untuk debugging
+    console.log('Calculating Total Revenue:');
+    console.log('Total non-cancelled bookings:', validBookings.length);
+    
+    // Log detail setiap booking untuk analisis
+    validBookings.forEach((booking, index) => {
+      console.log(`Booking ${index + 1}:`, {
+        id: booking._id,
+        roomType: booking.roomType,
+        checkIn: booking.checkIn,
+        checkOut: booking.checkOut,
+        totalAmount: booking.totalAmount,
+        status: booking.status
+      });
+    });
+    
+    // Hitung total revenue
+    const total = validBookings.reduce((sum, booking) => {
+      // Jika totalAmount tidak valid (undefined, null, NaN), gunakan 0
+      const amount = booking.totalAmount || 0;
+      console.log(`Adding amount: ${amount}K from booking ${booking._id}`);
+      return sum + amount;
+    }, 0);
+    
+    console.log('Final Total Revenue:', total + 'K');
+    return total;
   }, [bookings]);
   
   // 3. Monthly Revenue Data (untuk Bar Chart)
@@ -156,14 +193,20 @@ const Statistics = ({ token }) => {
     const roomTypeCount = {};
     const roomTypeBookings = {};
     
-    // Count total of each room type
+    // Inisialisasi perhitungan
     rooms.forEach(room => {
       if (!roomTypeCount[room.roomType]) {
         roomTypeCount[room.roomType] = 0;
         roomTypeBookings[room.roomType] = 0;
       }
-      roomTypeCount[room.roomType]++;
+      
+      // Menggunakan nilai totalRooms dari setiap kamar (default 5 jika tidak ada)
+      roomTypeCount[room.roomType] += (room.totalRooms || 5);
     });
+    
+    // Log untuk debugging
+    console.log('Room Type Distribution:');
+    console.log('Total rooms by type:', roomTypeCount);
     
     // Count bookings for each room type
     bookings.forEach(booking => {
@@ -247,7 +290,7 @@ const Statistics = ({ token }) => {
           {payload.map((entry, index) => (
             <p key={index} style={{ color: entry.color }}>
               {entry.name}: {entry.name.includes('Revenue') || entry.name === 'revenue' 
-                ? `IDR ${entry.value.toLocaleString()}`
+                ? formatToIDR(entry.value)
                 : entry.value}
             </p>
           ))}
@@ -328,7 +371,7 @@ const Statistics = ({ token }) => {
           title="Total Bookings" 
           value={bookings.length} 
           icon={<FaChartBar size={20} />}
-          color={colors.primary}
+          color={colors.secondary}
           subtext="All time bookings"
         />
         <StatCard 
@@ -340,10 +383,10 @@ const Statistics = ({ token }) => {
         />
         <StatCard 
           title="Total Revenue" 
-          value={`IDR ${totalRevenue.toLocaleString()}`} 
+          value={formatToIDR(totalRevenue)} 
           icon={<FaMoneyBillWave size={20} />}
           color={colors.success}
-          subtext="From all bookings"
+          subtext="From all confirmed bookings"
         />
         <StatCard 
           title="Room Types" 
@@ -373,11 +416,11 @@ const Statistics = ({ token }) => {
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis yAxisId="left" orientation="left" stroke={colors.primary} />
+                <YAxis yAxisId="left" orientation="left" stroke={colors.confirmed} />
                 <YAxis yAxisId="right" orientation="right" stroke={colors.secondary} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Bar yAxisId="left" dataKey="revenue" name="Revenue (IDR)" fill={colors.primary} radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="revenue" name="Revenue (IDR)" fill={colors.confirmed} radius={[4, 4, 0, 0]} />
                 <Bar yAxisId="right" dataKey="bookings" name="Bookings" fill={colors.secondary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -399,7 +442,32 @@ const Statistics = ({ token }) => {
                   fill="#8884d8"
                   paddingAngle={3}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={false}
+                  label={({ name, percent, x, y, midAngle }) => {
+                    // Only show label if percent is greater than 1%
+                    if (percent < 0.01) return null;
+                    
+                    // Adjust position based on angle
+                    const radius = 120; // slightly outside the pie
+                    const sin = Math.sin(-midAngle * Math.PI / 225);
+                    const cos = Math.cos(-midAngle * Math.PI / 225);
+                    const labelX = x + (radius * sin);
+                    const labelY = y + (radius * cos);
+                    
+                    return (
+                      <text 
+                        x={labelX} 
+                        y={labelY} 
+                        fill={colors.primary}
+                        textAnchor={midAngle > 0 ? 'start' : 'end'}
+                        dominantBaseline="central"
+                        fontWeight="500"
+                        fontSize="12"
+                      >
+                        {`${name} ${(percent * 100).toFixed(0)}%`}
+                      </text>
+                    );
+                  }}
                 >
                   {bookingsByStatus.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -429,7 +497,7 @@ const Statistics = ({ token }) => {
                 <YAxis dataKey="name" type="category" width={100} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Bar dataKey="rooms" name="Total Rooms" fill={colors.primary} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="rooms" name="Total Rooms" fill={colors.success} radius={[0, 4, 4, 0]} />
                 <Bar dataKey="bookings" name="Bookings" fill={colors.secondary} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -449,7 +517,32 @@ const Statistics = ({ token }) => {
                   outerRadius={110}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={false}
+                  label={({ name, percent, x, y, midAngle }) => {
+                    // Only show label if percent is greater than 1%
+                    if (percent < 0.01) return null;
+                    
+                    // Adjust position based on angle
+                    const radius = 120; // slightly outside the pie
+                    const sin = Math.sin(-midAngle * Math.PI / 225);
+                    const cos = Math.cos(-midAngle * Math.PI / 200);
+                    const labelX = x + (radius * sin);
+                    const labelY = y + (radius * cos);
+                    
+                    return (
+                      <text 
+                        x={labelX} 
+                        y={labelY} 
+                        fill={colors.primary}
+                        textAnchor={midAngle > 0 ? 'start' : 'end'}
+                        dominantBaseline="central"
+                        fontWeight="500"
+                        fontSize="12"
+                      >
+                        {`${name} ${(percent * 100).toFixed(0)}%`}
+                      </text>
+                    );
+                  }}
                 >
                   {paymentMethodData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -473,8 +566,8 @@ const Statistics = ({ token }) => {
             >
               <defs>
                 <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={colors.primary} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={colors.primary} stopOpacity={0.1}/>
+                  <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor={colors.secondary} stopOpacity={0.1}/>
                 </linearGradient>
                 <linearGradient id="colorConfirmed" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={colors.confirmed} stopOpacity={0.8}/>
@@ -490,7 +583,7 @@ const Statistics = ({ token }) => {
               <YAxis />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Area type="monotone" dataKey="bookings" name="Total Bookings" stroke={colors.primary} fillOpacity={1} fill="url(#colorBookings)" />
+              <Area type="monotone" dataKey="bookings" name="Total Bookings" stroke={colors.secondary} fillOpacity={1} fill="url(#colorBookings)" />
               <Area type="monotone" dataKey="confirmed" name="Confirmed" stroke={colors.confirmed} fillOpacity={1} fill="url(#colorConfirmed)" />
               <Area type="monotone" dataKey="cancelled" name="Cancelled" stroke={colors.cancelled} fillOpacity={1} fill="url(#colorCancelled)" />
             </AreaChart>

@@ -1,4 +1,4 @@
-import login from "../assets/loginImg.png";
+import login from "../assets/wg-logo-fix.png";
 import axios from "axios";
 import { useState } from "react";
 import PropTypes from 'prop-types';
@@ -41,27 +41,15 @@ const Login = ({ setToken }) => {
   };
 
   return (
-    <div className="absolute top-0 left-0 h-full w-full z-50 bg-tertiary">
+    <div className="min-h-screen w-full bg-tertiary">
       {/* CONTAINER */}
-      <div className="flex h-full w-full overflow-hidden">
+      <div className="flex h-full w-ful">
         {/* IMAGE SIDE */}
-        <div className="w-2/3 hidden lg:block relative">
-          <img src={login} alt="" className="object-cover h-full w-full" />
-          <div className="absolute inset-0 bg-primary/40 flex flex-col justify-center items-center p-10">
-            <div className="bg-white/10 backdrop-blur-md p-8 rounded-lg shadow-lg max-w-md text-white border border-white/20">
-              <h2 className="text-3xl font-bold mb-4">WG Hotel Admin Panel</h2>
-              <p className="text-lg mb-3">Manage your hotel resources with ease</p>
-              <ul className="space-y-2 text-sm opacity-90">
-                <li>• Room Management</li>
-                <li>• Booking Overview</li>
-                <li>• Property Maintenance</li>
-                <li>• Staff Scheduling</li>
-              </ul>
-            </div>
-          </div>
+        <div className="w-1/2 hidden lg:block relative">
+        <img src={login} alt="" className="object-cover h-full w-full" />
         </div>
         {/* FORM SIDE */}
-        <div className="flex items-center justify-center w-full lg:w-1/3 px-6">
+        <div className="flex items-center justify-center w-full lg:w-1/2 px-6">
           <div className="w-full max-w-md">
             <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
               <div className="text-center mb-8">
@@ -121,7 +109,7 @@ const Login = ({ setToken }) => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="admin-btn-secondary w-full flex items-center justify-center"
+                    className="btn-yellow w-full flex items-center justify-center"
                   >
                     {loading ? (
                       <span className="inline-block h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
