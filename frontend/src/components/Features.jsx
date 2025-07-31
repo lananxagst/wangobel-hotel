@@ -1,5 +1,5 @@
 
-import { FaWifi, FaSwimmingPool, FaUtensils, FaSpa, FaDumbbell, FaParking } from "react-icons/fa";
+import { FaWifi, FaSwimmingPool, FaUtensils, FaSpa, FaParking, FaBroom } from "react-icons/fa";
 
 const Features = () => {
   const facilities = [
@@ -24,9 +24,9 @@ const Features = () => {
       description: "Luxurious spa treatments and wellness center"
     },
     {
-      icon: <FaDumbbell />,
+      icon: <FaBroom />,
       title: "Cleaning Services",
-      description: "Modern gym equipment and personal trainers"
+      description: "Detailed, fast, and spotless cleaning service"
     },
     {
       icon: <FaParking />,
