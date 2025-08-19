@@ -49,7 +49,7 @@ const Login = () => {
           setToken(loginResponse.data.token);
           localStorage.setItem("token", loginResponse.data.token);
 
-          // Menggunakan data user dari backend (termasuk picture terbaru) alih-alih dari Google API
+          // Menggunakan data user dari backend (termasuk picture terbaru) atau jika belum memilikinya atau mengupdate nya akan menggunakan data default dari google API
           if (loginResponse.data.user) {
             const userData = {
               name: loginResponse.data.user.name,
